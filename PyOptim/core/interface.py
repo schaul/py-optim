@@ -1,30 +1,55 @@
-from pybrain.utilities import setAllArgs 
+from scipy import mean
+from pybrain.utilities import setAllArgs
 
 
 
 class GradientBasedOptimizer(object):
     """ Parent class for a number gradient descent variants. 
-    
-    It has multiple ways of being invoked?
     """
     
+    # how many samples per step
+    batch_size = 1
     
+    # callback after each update
+    callback = lambda *_: None
     
-    
-    def __init__(self, provider, num_parameters, **kwargs):
+    def __init__(self, provider, **kwargs):
         self.provider = provider
-        self.num_parameters = num_parameters
-        self._additionalInit(**kwargs)
-        
-    def _additionalInit(self, **kwargs):
+        self.paramdim = provider.numParameters
+        self._num_updates = 0
         setAllArgs(self, **kwargs)
+        self._additionalInit()
         
+    def _additionalInit(self):
+        """ Abstract: initializations for subclasses. """
     
+    def _updateParameters(self):
+        """ Abstract: implemented by subclasses. 
+        Only affects parameter vector. """
+    
+    def _computeStatistics(self):
+        """ Auxiliary computations that affect state variables,
+        but not parameter vector """
+        
+    def _collectGradients(self):
+        """ Obtain the gradient information for the specified number of samples
+        from the provider object. """
+        self.provider.nextSamples(self.batch_size)
+        self._last_gradients = self.provider.getGradients()    
+    
+    @property
+    def _last_gradient(self):
+        """ Makes minibatches transparent. """
+        return mean(self._last_gradients, axis=1)
     
     def oneStep(self):
         """ Provided is a matrix, where each row is a sample, 
         and each column corresponds to one parameter. """
-    
+        self._collectGradients()
+        self._computeStatistics()
+        self._updateParameters()
+        self._num_updates += 1
+        self.callback()
     
     
 
