@@ -6,7 +6,8 @@ class OracleSGD(SGD):
     always knows the optimum learning rate (assuming a quadratic loss function) """
     
     def _additionalInit(self):
-        assert isinstance(self.provider.stochfun, StochQuad)
+        if not isinstance(self.provider.stochfun, StochQuad):
+            print 'WARNING: orcale inapplicable'
         self._noiseLevel = self.provider.stochfun.noiseLevel
         self._curvature = self.provider.stochfun.curvature
     
