@@ -1,4 +1,7 @@
-from scipy import median, percentile
+from scipy import median
+from tools import percentile    
+    
+    
 from algorithms import SGD, AdaGrad, Amari, MomentumSGD, OracleSGD, RMSProp, vSGD
 import pylab
 
