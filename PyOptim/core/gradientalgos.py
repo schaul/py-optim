@@ -53,6 +53,10 @@ class GradientBasedOptimizer(object):
         self._updateParameters()
         self._num_updates += 1
         self.callback(self)
+        
+    @property
+    def bestParameters(self):
+        return self.parameters
     
     def run(self, maxsteps=None):
         while not self.terminate(maxsteps):
@@ -64,7 +68,7 @@ class GradientBasedOptimizer(object):
             if self._num_updates >= maxsteps:
                 return True
         if self.loss_target is not None:
-            l = self.provider.currentLosses(self.parameters)
+            l = self.provider.currentLosses(self.bestParameters)
             if mean(l) <= self.loss_target:
                 return True
         return False

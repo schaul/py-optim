@@ -9,7 +9,7 @@ from algorithms.rmsprop import RMSProp
 from algorithms.adagrad import AdaGrad
 from algorithms.quadoracle import OracleSGD
 from algorithms.momentum import MomentumSGD
-
+from algorithms.averaging import AveragingSGD
         
 def testWrapper(dim=5):
     f1 = FunctionWrapper(dim, StochQuad(noiseLevel=0.1))
@@ -24,7 +24,8 @@ def testWrapper(dim=5):
     
 def printy(s):
     if s._num_updates % 2 == 0:
-        print s._num_updates, s.parameters, s.provider.currentLosses(s.parameters)
+        print s._num_updates, s.bestParameters, 
+        print s.provider.currentLosses(s.bestParameters)
     
 def testSGD(dim=3):
     f = FunctionWrapper(dim, StochQuad(noiseLevel=0.2))
@@ -50,7 +51,8 @@ def testAlgos(dim=3):
     dw = DatasetWrapper(ds, f, shuffling=False)
     
     x0 = ones(dim)
-    for algoclass in [SGD, SGD, OracleSGD, Almeida, Amari, RMSProp, AdaGrad, MomentumSGD]:
+    for algoclass in [SGD, SGD, OracleSGD, Almeida, Amari, RMSProp, AdaGrad,
+                      MomentumSGD, AveragingSGD]:
         dw.reset()
         print algoclass.__name__
         algo = algoclass(dw, x0, callback=printy)
