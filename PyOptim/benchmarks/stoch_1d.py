@@ -76,8 +76,9 @@ class StochFun(object):
         if seeded is not None:
             tmp = int(abs(randn()*1e6))
             seed(seeded)
-        rxs = repmat(xs, self.ESamples, 1).T
-        res = mean(self._f(rxs), axis=1)
+        self._newSample(len(xs), override=True)
+        rxs = repmat(xs, self.ESamples, 1)
+        res = mean(self._f(rxs), axis=0)
         if seeded is not None:
             seed(tmp)
         return res
