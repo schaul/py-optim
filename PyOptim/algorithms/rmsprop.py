@@ -5,7 +5,7 @@ from amari import Amari
 class RMSProp(Amari):
     """ Root-mean-square-normalized SGD (Hinton 2012). """    
 
-    exponent = 0.5
+    exponent = -0.5
 
     @property
     def learning_rate(self):

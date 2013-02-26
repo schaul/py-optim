@@ -61,6 +61,9 @@ class FunctionWrapper(SampleProvider):
         self.stochfun._newSample(self.paramdim, override=True)
         if self.record_samples:
             self._seen.append(self.stochfun._lastseen)
+            
+    def __str__(self):
+        return self.stochfun.__class__.__name__+" n=%s curv=%s "%(self.stochfun.noiseLevel, self.stochfun.curvature)
 
 class DatasetWrapper(FunctionWrapper):
     """ Specialized case for datasets """
