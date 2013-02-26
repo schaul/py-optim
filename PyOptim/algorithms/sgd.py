@@ -1,4 +1,4 @@
-from core.interface import GradientBasedOptimizer
+from core.gradientalgos import GradientBasedOptimizer
 
 
 class SGD(GradientBasedOptimizer):

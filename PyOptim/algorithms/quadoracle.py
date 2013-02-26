@@ -12,5 +12,6 @@ class OracleSGD(SGD):
     
     @property
     def learning_rate(self):
-        return self.parameters ** 2 / (self.parameters ** 2 + self._noiseLevel ** 2 / self.batch_size) / self._curvature          
+        return self.parameters ** 2 / (self.parameters ** 2 + self._noiseLevel ** 2 
+                                       / self.batch_size) / self._curvature          
     

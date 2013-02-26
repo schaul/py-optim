@@ -2,7 +2,6 @@ from scipy import mean
 from pybrain.utilities import setAllArgs
 
 
-
 class GradientBasedOptimizer(object):
     """ Parent class for a number gradient descent variants. 
     """
@@ -72,68 +71,3 @@ class GradientBasedOptimizer(object):
 
 
 
-
-
-    
-    
-    
-class SampleProvider(object):
-    """ Unified interface for interacting with a model: 
-    given a data sample and a parameter vector, it produces 
-    gradients, loss values, and potentially other terms like
-    diagonal Hessians. 
-    
-    The samples are iteratively generated, either from a dataset, or from a 
-    function, individually or in minibatches, shuffled or not.
-    """
-    
-    batch_size = 1
-    
-    #optional function that generates diagonal Hessian approximations
-    diaghess_fun = None
-    
-    def __init__(self, paramdim, loss_fun, gradient_fun, **kwargs):
-        self.paramdim = paramdim
-        self.loss_fun = loss_fun
-        self.gradient_fun = gradient_fun        
-        setAllArgs(self, kwargs)
-        self.nextSamples()
-    
-    def nextSamples(self, how_many=None):
-        """"""
-        if how_many is None:
-            how_many = self.batch_size
-        self._provide(how_many)
-    
-    def _provide(self, number):
-        """ abstract """
-        
-    def currentGradients(self, params):
-        return self.gradient_fun(params)
-        
-    def currentLosses(self, params):
-        return self.loss_fun(params)
-        
-    def currentDiagHess(self, params):
-        if self.diaghess_fun is not None:
-            return self.diaghess_fun(params)        
-    
-class FunctionWrapper(SampleProvider):
-    """ Specialized case for a function that can generate samples on the fly. """
-    
-    def __init__(self, dim, stochfun, **kwargs):
-        self.stochfun = stochfun
-        SampleProvider.__init__(self, dim, loss_fun=stochfun._f,
-                                gradient_fun=stochfun._df,
-                                diaghess_fun=stochfun._ddf)
-        stochfun._retain_sample=True
-        
-    def _provide(self, number):
-        assert number == 1, 'so far only single new samples...'
-        self.stochfun._newSample(self.paramdim, override=True)
-        
-
-class DatasetWrapper(SampleProvider):
-    """ Specialized case for datasets """
-    
-    
