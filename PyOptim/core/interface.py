@@ -13,11 +13,15 @@ class GradientBasedOptimizer(object):
     # callback after each update
     callback = lambda *_: None
     
-    def __init__(self, provider, **kwargs):
+    # target value (stop after the loss is lower)
+    loss_target = None
+    
+    def __init__(self, provider, init_params, **kwargs):
         self.provider = provider
-        self.paramdim = provider.numParameters
+        self.parameters = init_params.copy()
+        self.paramdim = len(init_params)
         self._num_updates = 0
-        setAllArgs(self, **kwargs)
+        setAllArgs(self, kwargs)
         self._additionalInit()
         
     def _additionalInit(self):
@@ -35,7 +39,7 @@ class GradientBasedOptimizer(object):
         """ Obtain the gradient information for the specified number of samples
         from the provider object. """
         self.provider.nextSamples(self.batch_size)
-        self._last_gradients = self.provider.getGradients()    
+        self._last_gradients = self.provider.currentGradients(self.parameters)    
     
     @property
     def _last_gradient(self):
@@ -49,60 +53,87 @@ class GradientBasedOptimizer(object):
         self._computeStatistics()
         self._updateParameters()
         self._num_updates += 1
-        self.callback()
+        self.callback(self)
     
+    def run(self, maxsteps=None):
+        while not self.terminate(maxsteps):
+            self.oneStep()
     
+    def terminate(self, maxsteps):
+        """ Termination criteria """
+        if maxsteps is not None:
+            if self._num_updates >= maxsteps:
+                return True
+        if self.loss_target is not None:
+            l = self.provider.currentLosses(self.parameters)
+            if mean(l) <= self.loss_target:
+                return True
+        return False
 
 
 
 
 
-class ModelWrapper(object):
-    """ Unified interface for interacting with a model: 
-    given a data sample and a parameter vector, produce 
-    gradients, loss values, and potentially other terms like
-    diagonal Hessians. """
     
-    diaghess_fun = None
-    
-    def __init__(self, sample_provider, loss_fun, gradient_fun, **kwargs):
-        self.loss_fun = loss_fun
-        self.gradient_fun = gradient_fun        
-        setAllArgs(self, **kwargs)
-
-
     
     
 class SampleProvider(object):
-    """ A wrapper around a dataset that can iterate over it, sample randomly,
-    or generate new points on the fly, where every sample has a unique identifier
-    (the seed in the generative case).
+    """ Unified interface for interacting with a model: 
+    given a data sample and a parameter vector, it produces 
+    gradients, loss values, and potentially other terms like
+    diagonal Hessians. 
+    
+    The samples are iteratively generated, either from a dataset, or from a 
+    function, individually or in minibatches, shuffled or not.
     """
     
-        
+    batch_size = 1
     
-    def _provide(self, sample_id):
-        """ abstract. """
-        
+    #optional function that generates diagonal Hessian approximations
+    diaghess_fun = None
     
-    def provideNext(self, how_many=1, sample_id=None):
+    def __init__(self, paramdim, loss_fun, gradient_fun, **kwargs):
+        self.paramdim = paramdim
+        self.loss_fun = loss_fun
+        self.gradient_fun = gradient_fun        
+        setAllArgs(self, kwargs)
+        self.nextSamples()
+    
+    def nextSamples(self, how_many=None):
         """"""
+        if how_many is None:
+            how_many = self.batch_size
+        self._provide(how_many)
+    
+    def _provide(self, number):
+        """ abstract """
         
-    
-    
-    
-    
-class DatasetWrapper(SampleProvider):
-    """ Specialized case for datasets """
-    
+    def currentGradients(self, params):
+        return self.gradient_fun(params)
+        
+    def currentLosses(self, params):
+        return self.loss_fun(params)
+        
+    def currentDiagHess(self, params):
+        if self.diaghess_fun is not None:
+            return self.diaghess_fun(params)        
     
 class FunctionWrapper(SampleProvider):
     """ Specialized case for a function that can generate samples on the fly. """
     
-    
-    
-    
-    
+    def __init__(self, dim, stochfun, **kwargs):
+        self.stochfun = stochfun
+        SampleProvider.__init__(self, dim, loss_fun=stochfun._f,
+                                gradient_fun=stochfun._df,
+                                diaghess_fun=stochfun._ddf)
+        stochfun._retain_sample=True
+        
+    def _provide(self, number):
+        assert number == 1, 'so far only single new samples...'
+        self.stochfun._newSample(self.paramdim, override=True)
+        
 
+class DatasetWrapper(SampleProvider):
+    """ Specialized case for datasets """
     
     
