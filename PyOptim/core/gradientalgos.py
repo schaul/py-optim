@@ -43,7 +43,7 @@ class GradientBasedOptimizer(object):
     @property
     def _last_gradient(self):
         """ Makes minibatches transparent. """
-        return mean(self._last_gradients, axis=1)
+        return mean(self._last_gradients, axis=0)
     
     def oneStep(self):
         """ Provided is a matrix, where each row is a sample, 
@@ -73,5 +73,7 @@ class GradientBasedOptimizer(object):
                 return True
         return False
 
+    def __str__(self):
+        return self.__class__.__name__
 
 
