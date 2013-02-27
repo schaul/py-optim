@@ -1,4 +1,4 @@
-from scipy import ones
+from scipy import ones, mean
 
 from core.datainterface import FunctionWrapper, DatasetWrapper
 from benchmarks.stoch_1d import StochQuad
@@ -25,7 +25,7 @@ def testWrapper(dim=5):
 def printy(s):
     if s._num_updates % 2 == 0:
         print s._num_updates, s.bestParameters, 
-        print s.provider.currentLosses(s.bestParameters)
+        print mean(s.provider.currentLosses(s.bestParameters))
     
 def testSGD(dim=3):
     f = FunctionWrapper(dim, StochQuad(noiseLevel=0.2))
@@ -59,10 +59,20 @@ def testAlgos(dim=3):
         algo.run(16)
         
     
+def testMinibatch(dim=4):
+    f = StochQuad(noiseLevel=0.2)
+    fw = FunctionWrapper(dim, f, record_samples=True)
+    x0 = ones(dim)
+    for mb in [1,3,15,250]:
+        print 'minibatch', mb
+        algo = SGD(fw, x0, callback=printy, batch_size=mb, learning_rate=0.1)
+        algo.run(10)
+        print
     
     
 if __name__ == "__main__":
-    testWrapper()
+    #testWrapper()
     #testSGD()
     #testOracle()
-    testAlgos()
+    #testAlgos()
+    testMinibatch()

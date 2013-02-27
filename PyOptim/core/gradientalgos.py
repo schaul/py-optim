@@ -10,7 +10,7 @@ class GradientBasedOptimizer(object):
     batch_size = 1
     
     # callback after each update
-    callback = lambda *_: None
+    callback = lambda * _: None
     
     # target value (stop after the loss is lower)
     loss_target = None
@@ -75,5 +75,30 @@ class GradientBasedOptimizer(object):
 
     def __str__(self):
         return self.__class__.__name__
+
+
+
+class BbpropHessians(GradientBasedOptimizer):
+    """ Algorithms that utilize bbprop to get a direct estimate of
+    the diagonal Hessians. """
+    
+    def _collectGradients(self):
+        GradientBasedOptimizer._collectGradients(self)        
+        self._last_diaghessians = abs(self.provider.currentHessians(self.parameters))
+          
+
+class FiniteDifferenceHessians(GradientBasedOptimizer):
+    """ Algorithms that utilize a finite-difference approximation 
+    to the curvatures. """    
+    
+    def _fdDirection(self):
+        """ Abstract """
+    
+    def _collectGradients(self):
+        GradientBasedOptimizer._collectGradients(self)
+        assert self.batch_size == 1, 'nothing bigger supported yet'
+        v = self._fdDirection()
+        tmp = self.provider.currentGradients(self.parameters + v)
+        self._last_diaghessians = abs(self._last_gradients - tmp) / v  
 
 

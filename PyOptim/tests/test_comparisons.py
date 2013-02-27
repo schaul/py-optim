@@ -75,7 +75,7 @@ def plotAllCombinations(avariants, fvariants, trials, maxsteps):
                 pylab.ylabel(aclass.__name__[:5])        
     
 def test1():
-    plotAllCombinations(algo_variants[:10], fun_variants[:13], 50, 2**10)
+    plotAllCombinations(algo_variants[-3:], fun_variants[:13], 50, 2**10)
     pylab.show()
 
 

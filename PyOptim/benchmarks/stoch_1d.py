@@ -235,7 +235,7 @@ class StochQuad(StochFun):
         return 0.5* (xs + self._noise(xs.shape))**2 * self.curvature
                 
     def _df(self, xs):
-        return (xs + self._noise(xs.shape)) * self.curvature
+        return (xs + self._noise(xs.shape)) * self.curvature    
     
     def _ddf(self, xs):
         return ones_like(xs) * self.curvature

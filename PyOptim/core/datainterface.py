@@ -1,4 +1,6 @@
 from random import shuffle
+from scipy import reshape
+from numpy.matlib import repmat
 from pybrain.utilities import setAllArgs
     
     
@@ -26,22 +28,38 @@ class SampleProvider(object):
     
     def nextSamples(self, how_many=None):
         """"""
-        if how_many is None:
-            how_many = self.batch_size
-        self._provide(how_many)
+        if how_many is not None:
+            self.batch_size = how_many
+        self._provide()
     
     def _provide(self, number):
         """ abstract """
         
     def currentGradients(self, params):
-        return self.gradient_fun(params)
+        if self.batch_size > 1:
+            params = repmat(params, 1, self.batch_size)
+            res = self.gradient_fun(params)
+            return reshape(res, (self.batch_size, self.paramdim))
+        else:
+            return self.gradient_fun(params)
         
     def currentLosses(self, params):
-        return self.loss_fun(params)
+        if self.batch_size > 1:
+            params = repmat(params, 1, self.batch_size)
+            res = self.loss_fun(params)
+            return reshape(res, (self.batch_size, self.paramdim))
+        else:
+            return self.loss_fun(params)
         
     def currentDiagHess(self, params):
-        if self.diaghess_fun is not None:
-            return self.diaghess_fun(params)        
+        if self.diaghess_fun is None:
+            return
+        if self.batch_size > 1:
+            params = repmat(params, 1, self.batch_size)
+            res = self.diaghess_fun(params)
+            return reshape(res, (self.batch_size, self.paramdim))
+        else:
+            return self.diaghess_fun(params)
     
 class FunctionWrapper(SampleProvider):
     """ Specialized case for a function that can generate samples on the fly. """
@@ -56,11 +74,15 @@ class FunctionWrapper(SampleProvider):
                                 diaghess_fun=stochfun._ddf, **kwargs)
         stochfun._retain_sample = True
         
-    def _provide(self, number):
-        assert number == 1, 'so far only single new samples...'
-        self.stochfun._newSample(self.paramdim, override=True)
+    def _provide(self):
+        self.stochfun._newSample(self.paramdim*self.batch_size, override=True)
         if self.record_samples:
-            self._seen.append(self.stochfun._lastseen)
+            ls = self.stochfun._lastseen
+            if self.batch_size == 1:
+                self._seen.append(ls)
+            else:
+                for l in reshape(ls, (self.batch_size, self.paramdim)):
+                    self._seen.append(l)
             
     def __str__(self):
         return self.stochfun.__class__.__name__+" n=%s curv=%s "%(self.stochfun.noiseLevel, self.stochfun.curvature)
@@ -87,7 +109,8 @@ class DatasetWrapper(FunctionWrapper):
             shuffle(self._indices)
         return self._indices[tmp] 
         
-    def _provide(self, number):
+    def _provide(self):
+        number = self.batch_size 
         assert number == 1, 'so far only single new samples...'
         i = self.getIndex()
         self.stochfun._lastseen = self.dataset[i]#:i+number]
