@@ -46,7 +46,7 @@ class StochFun(object):
    
     def _newSample(self, nsamples, override=False):
         if self._lastseen is None or override or not self._retain_sample:
-            self._lastseen = randn(1, nsamples) * self.noiseLevel        
+            self._lastseen = randn(1, nsamples)        
    
     def _noise(self, shape):
         if len(shape) > 1:
@@ -55,7 +55,9 @@ class StochFun(object):
             nsamples = shape[0]
             nsynch = 1
         self._newSample(nsamples)
-        res = repmat(self._lastseen, nsynch, 1)
+        res = self._lastseen * self.noiseLevel
+        if nsynch > 1:
+            res = repmat(res, nsynch, 1)
         if self.outlierProb > rand():
             print 'OUT', nsynch, nsamples
             res[:,randint(1,nsamples)] *= self.outlierLevel            

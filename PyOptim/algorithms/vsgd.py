@@ -8,11 +8,11 @@ class vSGD(SGD, BbpropHessians):
 
     # how to initialize the running averages
     slow_constant = 2
-    init_samples = 3
+    init_samples = 10
     
     # avoiding numerical instability
     epsilon = 1e-9
-    outlier_level = 2
+    outlier_level = None #2
 
     def _additionalInit(self):
         # default setting
@@ -30,8 +30,8 @@ class vSGD(SGD, BbpropHessians):
         grads = self._last_gradients
         self._gbar = mean(grads, axis=0)
         self._vbar = (mean(grads ** 2, axis=0) + self.epsilon) * self.slow_constant
-        hess = clip(self._last_diaghessians, 1, 1 / self.epsilon) 
-        self._hbar = mean(hess, axis=0) * self.slow_constant
+        hs = clip(self._last_diaghessians, 1, 1 / self.epsilon) 
+        self._hbar = mean(hs, axis=0) * self.slow_constant
         
         # time constants
         self._taus = (ones_like(self.parameters) + self.epsilon) * self.init_samples
@@ -44,9 +44,8 @@ class vSGD(SGD, BbpropHessians):
 
 
     def _computeStatistics(self):
-        gs = self._last_gradients 
-        hs = abs(mean(self._last_diaghessians, axis=0)) + self.epsilon
-        bs = self.batch_size
+        grads = self._last_gradients 
+        hs = mean(self._last_diaghessians, axis=0) + self.epsilon
         
         # slow down updates if the last sample was an outlier
         if self.outlier_level is not None:
@@ -55,25 +54,25 @@ class vSGD(SGD, BbpropHessians):
         # update statistics
         fract = 1. / self._taus
         self._gbar *= (1. - fract)
-        self._gbar += fract * mean(gs, axis=0)
+        self._gbar += fract * mean(grads, axis=0)
         self._vbar *= (1. - fract)
-        self._vbar += fract * mean(gs ** 2, axis=0) + self.epsilon            
+        self._vbar += fract * mean(grads ** 2, axis=0) + self.epsilon            
         self._hbar *= (1. - fract)
         self._hbar += fract * hs
         
-        # update time constants based on the variance-part of the learning rate                 
-        vpart = self._gbar ** 2 / (1. / bs * self._vbar + 
-                                   (bs - 1.) / bs * self._gbar ** 2)
-        self._taus *= (1. - vpart)
+        # update time constants based on the variance-part of the learning rate  
+        if self.batch_size > 1:                
+            self._vpart = self._gbar ** 2 / (1. / self.batch_size * self._vbar + 
+                                       (self.batch_size - 1.) / self.batch_size * self._gbar ** 2)
+        else:
+            self._vpart = self._gbar ** 2 / self._vbar
+        self._taus *= (1. - self._vpart)
         self._taus += 1 + self.epsilon
                                     
     
     @property
     def learning_rate(self):
-        # effective batchsize
-        bs = self.batch_size
-        return self._gbar ** 2 / (1. / bs * self._vbar + 
-                                  (bs - 1.) / bs * self._gbar ** 2) / self._hbar
+        return self._vpart / self._hbar
                                   
                                   
 class vSGDfd(FiniteDifferenceHessians, vSGD):
