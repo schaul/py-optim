@@ -1,6 +1,7 @@
 import pylab
 from pybrain.utilities import crossproduct
 from tools.plotting import plotHeatmap
+from tools.experiments import lossTraces
 from core.datainterface import FunctionWrapper
 from matplotlib import rc
 rc('text', usetex=False)
@@ -80,5 +81,26 @@ def test1():
     pylab.show()
 
 
+def _runsome():
+    trials=50
+    maxsteps = 2000
+    fwrap = FunctionWrapper(trials, StochQuad(noiseLevel=1, curvature=1))
+    for aclass, aparams in algo_variants[-5:]:
+        if aclass == None:
+            continue
+        for fclass, fsettings in fun_variants[::7]:
+            if fsettings is None:
+                continue
+            fwrap = FunctionWrapper(trials, fclass(**fsettings))     
+            lossTraces(fwrap, aclass, algoparams=aparams, dim=trials, maxsteps=maxsteps, storesteps = [10])
+
+def testSpeed():
+    from pybrain.tests.helpers import sortedProfiling
+            
+    sortedProfiling('_runsome()')
+    
+    
+
 if __name__ == '__main__':
-    test1()
+    #test1()
+    testSpeed()
