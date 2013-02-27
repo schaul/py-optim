@@ -6,4 +6,4 @@ from momentum import MomentumSGD
 from quadoracle import OracleSGD
 from rmsprop import RMSProp
 from sgd import SGD, AnnealingSGD
-from vsgd import vSGD
+from vsgd import vSGD, vSGDfd

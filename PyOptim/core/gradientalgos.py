@@ -1,4 +1,5 @@
 from scipy import mean
+from numpy.matlib import repmat
 from pybrain.utilities import setAllArgs
 
 
@@ -84,7 +85,7 @@ class BbpropHessians(GradientBasedOptimizer):
     
     def _collectGradients(self):
         GradientBasedOptimizer._collectGradients(self)        
-        self._last_diaghessians = abs(self.provider.currentHessians(self.parameters))
+        self._last_diaghessians = abs(self.provider.currentDiagHess(self.parameters))
           
 
 class FiniteDifferenceHessians(GradientBasedOptimizer):
@@ -96,9 +97,10 @@ class FiniteDifferenceHessians(GradientBasedOptimizer):
     
     def _collectGradients(self):
         GradientBasedOptimizer._collectGradients(self)
-        assert self.batch_size == 1, 'nothing bigger supported yet'
         v = self._fdDirection()
         tmp = self.provider.currentGradients(self.parameters + v)
+        if self.batch_size > 1:
+            v = repmat(v, self.batch_size, 1)
         self._last_diaghessians = abs(self._last_gradients - tmp) / v  
 
 

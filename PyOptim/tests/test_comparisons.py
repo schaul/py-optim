@@ -5,7 +5,7 @@ from core.datainterface import FunctionWrapper
 from matplotlib import rc
 rc('text', usetex=False)
 
-from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGD, MomentumSGD
+from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGD, MomentumSGD, vSGDfd
 from benchmarks.stoch_1d import StochQuad, StochAbs, StochRectLin, StochGauss
 
 
@@ -32,6 +32,7 @@ algo_variants = [(SGD, {'learning_rate':1}),
                  (RMSProp, {'init_lr':0.01}),
                  (None, None),
                  (vSGD, {}),
+                 (vSGDfd, {}),
                  (OracleSGD, {}),
                  ] 
 
@@ -75,7 +76,7 @@ def plotAllCombinations(avariants, fvariants, trials, maxsteps):
                 pylab.ylabel(aclass.__name__[:5])        
     
 def test1():
-    plotAllCombinations(algo_variants[-3:], fun_variants[:13], 50, 2**10)
+    plotAllCombinations(algo_variants[-3:], fun_variants[:], 100, 2**10)
     pylab.show()
 
 
