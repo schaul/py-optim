@@ -46,7 +46,7 @@ def testAlgos(dim=3):
     # generate a dataset
     f = StochQuad(noiseLevel=0.2)
     fw = FunctionWrapper(dim, f, record_samples=True)
-    [fw.nextSamples() for _ in range(100)]
+    [fw.nextSamples(1) for _ in range(100)]
     ds = fw._seen
     dw = DatasetWrapper(ds, f, shuffling=False)
     
@@ -66,6 +66,15 @@ def testMinibatch(dim=4):
     for mb in [1,3,15,250]:
         print 'minibatch', mb
         algo = SGD(fw, x0, callback=printy, batch_size=mb, learning_rate=0.1)
+        algo.run(10)
+        print
+    [fw.nextSamples(1) for _ in range(2500)]
+    dw = DatasetWrapper(fw._seen, f, shuffling=False)
+    print 'Fixed samples'
+    for mb in [1,3,15,250]:
+        print 'minibatch', mb
+        dw.reset()
+        algo = SGD(dw, x0, callback=printy, batch_size=mb, learning_rate=0.1)
         algo.run(10)
         print
     

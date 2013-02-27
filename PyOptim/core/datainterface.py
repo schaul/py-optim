@@ -1,5 +1,5 @@
 from random import shuffle
-from scipy import reshape
+from scipy import reshape, array
 from numpy.matlib import repmat
 from pybrain.utilities import setAllArgs
     
@@ -24,15 +24,13 @@ class SampleProvider(object):
         self.loss_fun = loss_fun
         self.gradient_fun = gradient_fun        
         setAllArgs(self, kwargs)
-        self.nextSamples()
-    
-    def nextSamples(self, how_many=None):
-        """"""
-        if how_many is not None:
-            self.batch_size = how_many
+        
+    def nextSamples(self, how_many):
+        """ Obtain a certain number of samples. """
+        self.batch_size = how_many
         self._provide()
     
-    def _provide(self, number):
+    def _provide(self):
         """ abstract """
         
     def currentGradients(self, params):
@@ -95,7 +93,7 @@ class DatasetWrapper(FunctionWrapper):
     def __init__(self, dataset, stochfun, **kwargs):
         self.dataset = dataset
         assert len(dataset) > 0, 'Must be non-empty'
-        dim = len(dataset[0])
+        dim = dataset[0].size
         self._indices = range(len(self.dataset))
         self.reset()
         FunctionWrapper.__init__(self, dim, stochfun, **kwargs)
@@ -105,14 +103,19 @@ class DatasetWrapper(FunctionWrapper):
         
     def getIndex(self):
         tmp = self._counter % len(self.dataset)
+        if tmp + self.batch_size >= len(self.dataset):
+            # dataset is not a multiple of batchsizes
+            tmp = 0
         if tmp == 0 and self.shuffling:
             shuffle(self._indices)
         return self._indices[tmp] 
         
     def _provide(self):
-        number = self.batch_size 
-        assert number == 1, 'so far only single new samples...'
         i = self.getIndex()
-        self.stochfun._lastseen = self.dataset[i]#:i+number]
-        self._counter += number
+        if self.batch_size == 1:
+            self.stochfun._lastseen = self.dataset[i]
+        else:
+            x = array(self.dataset[i:i+self.batch_size])
+            self.stochfun._lastseen = reshape(x, (1, self.batch_size * self.paramdim))
+        self._counter += self.batch_size
         

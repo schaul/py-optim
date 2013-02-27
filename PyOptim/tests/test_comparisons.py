@@ -2,7 +2,7 @@ import pylab
 from pybrain.utilities import crossproduct
 from tools.plotting import plotHeatmap
 from tools.experiments import lossTraces
-from core.datainterface import FunctionWrapper
+from core.datainterface import FunctionWrapper, DatasetWrapper
 from matplotlib import rc
 rc('text', usetex=False)
 
@@ -55,8 +55,8 @@ fun_variants = crossproduct([fun_classes, fun_settings])
 
 
 
-def plotAllCombinations(avariants, fvariants, trials, maxsteps):
-    fwrap = FunctionWrapper(trials, StochQuad(noiseLevel=1, curvature=1))
+def plotAllCombinations(avariants, fvariants, trials, maxsteps, maxbatchsize=1):
+    fundic = {}    
     ploti = 1
     rows = len(avariants)     
     cols = len(fvariants)
@@ -67,22 +67,29 @@ def plotAllCombinations(avariants, fvariants, trials, maxsteps):
         for fid, (fclass, fsettings) in enumerate(fvariants):
             if fsettings is None:
                 ploti += 1
-                continue        
-            fwrap = FunctionWrapper(trials, fclass(**fsettings))     
+                continue
+            if fid not in fundic:
+                fun = fclass(**fsettings)
+                fwrap = FunctionWrapper(trials, fun, record_samples=True)
+                [fwrap.nextSamples(maxbatchsize) for _ in range(maxsteps+1)]
+                dwrap = DatasetWrapper(fwrap._seen, fun, shuffling=False)
+                fundic[fid] = dwrap
+            provider = fundic[fid]
+            provider.reset()
             pylab.subplot(rows, cols, ploti); ploti += 1
-            plotHeatmap(fwrap, aclass, aparams, trials, maxsteps)
+            plotHeatmap(provider, aclass, aparams, trials, maxsteps)
             if aid == 0:
                 pylab.title(fclass.__name__[5:])
             if fid == 0:
                 pylab.ylabel(aclass.__name__[:5])        
     
 def test1():
-    plotAllCombinations(algo_variants[-3:], fun_variants[:], 100, 2**10)
+    plotAllCombinations(algo_variants[-3:], fun_variants[:], 100, 2 ** 10)
     pylab.show()
 
 
 def _runsome():
-    trials=50
+    trials = 50
     maxsteps = 2000
     fwrap = FunctionWrapper(trials, StochQuad(noiseLevel=1, curvature=1))
     for aclass, aparams in algo_variants[-5:]:
@@ -92,7 +99,7 @@ def _runsome():
             if fsettings is None:
                 continue
             fwrap = FunctionWrapper(trials, fclass(**fsettings))     
-            lossTraces(fwrap, aclass, algoparams=aparams, dim=trials, maxsteps=maxsteps, storesteps = [10])
+            lossTraces(fwrap, aclass, algoparams=aparams, dim=trials, maxsteps=maxsteps, storesteps=[10])
 
 def testSpeed():
     from pybrain.tests.helpers import sortedProfiling
@@ -102,5 +109,5 @@ def testSpeed():
     
 
 if __name__ == '__main__':
-    #test1()
-    testSpeed()
+    test1()
+    #testSpeed()
