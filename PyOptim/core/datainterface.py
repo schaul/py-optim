@@ -36,7 +36,7 @@ class SampleProvider(object):
     def currentGradients(self, params):
         if self.batch_size > 1:
             params = repmat(params, 1, self.batch_size)
-            res = self.gradient_fun(params)
+            res = self.gradient_fun(params)            
             return reshape(res, (self.batch_size, self.paramdim))
         else:
             return self.gradient_fun(params)
@@ -81,6 +81,9 @@ class FunctionWrapper(SampleProvider):
             else:
                 for l in reshape(ls, (self.batch_size, self.paramdim)):
                     self._seen.append(l)
+                    
+    def reset(self):
+        """ Nothing to be done. """
             
     def __str__(self):
         return self.stochfun.__class__.__name__+" n=%s curv=%s "%(self.stochfun.noiseLevel, self.stochfun.curvature)
@@ -113,9 +116,9 @@ class DatasetWrapper(FunctionWrapper):
     def _provide(self):
         i = self.getIndex()
         if self.batch_size == 1:
-            self.stochfun._lastseen = self.dataset[i]
+            x = self.dataset[i]
         else:
             x = array(self.dataset[i:i+self.batch_size])
-            self.stochfun._lastseen = reshape(x, (1, self.batch_size * self.paramdim))
+        self.stochfun._lastseen = reshape(x, (1, self.batch_size * self.paramdim))
         self._counter += self.batch_size
         

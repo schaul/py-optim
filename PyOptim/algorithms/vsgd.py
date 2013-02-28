@@ -1,4 +1,4 @@
-from scipy import mean, ones_like, clip
+from scipy import mean, ones_like, clip, logical_or
 from sgd import SGD
 from core.gradientalgos import BbpropHessians, FiniteDifferenceHessians
 
@@ -11,7 +11,7 @@ class vSGD(SGD, BbpropHessians):
     init_samples = 10
     
     # avoiding numerical instability
-    epsilon = 1e-9
+    epsilon = 1e-5
     outlier_level = None #2
 
     def _additionalInit(self):
@@ -26,12 +26,14 @@ class vSGD(SGD, BbpropHessians):
         self._num_updates += self.init_samples
         self.batch_size = tmp
         
-        # initialize statistics
-        grads = self._last_gradients
-        self._gbar = mean(grads, axis=0)
-        self._vbar = (mean(grads ** 2, axis=0) + self.epsilon) * self.slow_constant
-        hs = clip(self._last_diaghessians, 1, 1 / self.epsilon) 
-        self._hbar = mean(hs, axis=0) * self.slow_constant
+        # mean gradient vector
+        self._gbar = mean(self._last_gradients, axis=0)
+        # mean squared gradient
+        self._vbar = (mean(self._last_gradients ** 2, axis=0) + self.epsilon) * self.slow_constant
+        
+        # mean diagonal Hessian
+        hs = clip(mean(self._last_diaghessians, axis=0), 1, 1/self.epsilon)
+        self._hbar = hs * self.slow_constant
         
         # time constants
         self._taus = (ones_like(self.parameters) + self.epsilon) * self.init_samples
@@ -53,11 +55,11 @@ class vSGD(SGD, BbpropHessians):
         
         # update statistics
         fract = 1. / self._taus
-        self._gbar *= (1. - fract)
+        self._gbar *= 1. - fract
         self._gbar += fract * mean(grads, axis=0)
-        self._vbar *= (1. - fract)
+        self._vbar *= 1. - fract
         self._vbar += fract * mean(grads ** 2, axis=0) + self.epsilon            
-        self._hbar *= (1. - fract)
+        self._hbar *= 1. - fract
         self._hbar += fract * hs
         
         # update time constants based on the variance-part of the learning rate  
@@ -66,9 +68,9 @@ class vSGD(SGD, BbpropHessians):
                                        (self.batch_size - 1.) / self.batch_size * self._gbar ** 2)
         else:
             self._vpart = self._gbar ** 2 / self._vbar
-        self._taus *= (1. - self._vpart)
+        self._taus *= 1. - self._vpart
         self._taus += 1 + self.epsilon
-                                    
+        del hs, fract
     
     @property
     def learning_rate(self):
@@ -77,9 +79,51 @@ class vSGD(SGD, BbpropHessians):
                                   
 class vSGDfd(FiniteDifferenceHessians, vSGD):
     """ vSGD with finite-difference estimate of diagonal Hessian """
+        
+    @property
+    def learning_rate(self):            
+        return self._vpart * (self._hbar / self._vhbar)
+    
+    def _additionalInit(self):
+        vSGD._additionalInit(self)
+        h2s = clip(mean(self._last_diaghessians **2, axis=0), 1, 1/self.epsilon)
+        self._vhbar = h2s * self.slow_constant**2        
+    
+    def _computeStatistics(self):
+        vSGD._computeStatistics(self)
+        fract = 1. / self._taus
+        self._vhbar *= (1. - fract)
+        self._vhbar += fract * mean(self._last_diaghessians ** 2, axis=0) + self.epsilon
+        del fract        
     
     def _fdDirection(self):
         if self._num_updates == 0:
-            return self._last_gradient
+            return self._last_gradient+self.epsilon
         else:
-            return self._gbar
+            return self._gbar+self.epsilon
+        
+    def _detectOutliers(self):
+        """ Binary vector for which dimension saw an outlier gradient:
+        considers oultier curvature as well. """
+        hs = mean(self._last_diaghessians, axis=0) 
+        var = (self._vhbar - self._hbar ** 2) / self.batch_size
+        res = logical_or(vSGD._detectOutliers(self),
+                         (hs - self._hbar) ** 2 > self.outlier_level ** 2 * var)
+        del hs, var
+        return res
+
+    def _printStuff(self):
+        from scipy import median
+        print self._num_updates, 
+        for n, a in [('tau', self._taus), 
+                     ('p', self.parameters), 
+                     ('v', self._vbar), 
+                     ('g', self._gbar),
+                     ('vpa', self._gbar**2/self._vbar), 
+                     ('h', self._hbar),
+                     ('vh', self._vhbar),
+                     ('hpa', self._hbar/self._vhbar),
+                     ]:
+            print n, round(median(a),4), '\t',
+        print
+        

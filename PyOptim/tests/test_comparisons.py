@@ -3,8 +3,6 @@ from scipy import median
 from tools.plotting import plotHeatmap
 from tools.experiments import lossTraces
 from core.datainterface import FunctionWrapper, DatasetWrapper
-from matplotlib import rc
-rc('text', usetex=False)
 
 from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGD, MomentumSGD, vSGDfd
 from benchmarks.stoch_1d import StochQuad, StochAbs, StochRectLin, StochGauss
@@ -35,27 +33,28 @@ algo_variants = {SGD: [{'learning_rate':1},
                             {'init_lr':0.01},
                             ],
                  vSGD: [{},
-                        {'batch_size':10},
+                        #{'batch_size':10},
                         ],
                  vSGDfd: [{},
-                          #{'outlier_level':1},
+                          #{'verbose':True},
+                          #{'outlier_level':2},
                           #{'slow_constant':10},
-                          {'batch_size':10},
+                          #{'batch_size':10},
                           ],
                  OracleSGD: [{}],
                  } 
 
 fun_settings = [#{'noiseLevel':100},
-                {'curvature':0.1, 'noiseLevel':10},
-                {'noiseLevel':10},
+                #{'curvature':0.1, 'noiseLevel':10},
+                #{'noiseLevel':10},
                 #{},
                 #{'curvature':0.1},
                 #{'curvature':10},
-                {'curvature':0.01},
+                #{'curvature':0.01},
                 {'curvature':100},
-                {'noiseLevel':0.1},
-                {'curvature':10, 'noiseLevel':0.1},
-                {'noiseLevel':0.01},
+                #{'noiseLevel':0.1},
+                #{'curvature':10, 'noiseLevel':0.1},
+                #{'noiseLevel':0.01},
                 ]
 
 fun_classes = [StochQuad, StochGauss,
@@ -67,7 +66,7 @@ fun_classes = [StochQuad, StochGauss,
 
 def plotAllCombinations(aclasses, avariants,
                         fclasses, fvariants,
-                        trials, maxsteps, maxbatchsize=1):
+                        trials, maxsteps, maxbatchsize=10):
     fundic = {}    
     ploti = 1
     rows = sum([len(avariants[ac]) for ac in aclasses]) + len(aclasses) - 1
@@ -101,14 +100,14 @@ def plotAllCombinations(aclasses, avariants,
     pylab.subplots_adjust(left=0.1, bottom=0.01, right=0.99, top=0.9, wspace=0.05, hspace=0.05)        
     
 def test1():
-    plotAllCombinations([SGD, 
+    plotAllCombinations([#SGD, 
                          vSGD,
-                         #vSGDfd, 
+                         vSGDfd, 
                          #OracleSGD, 
                          #Amari,
                          ], algo_variants,
-                        fun_classes[:],
-                        fun_settings, 25, 2 ** 8)
+                        fun_classes[2:3],
+                        fun_settings, 50, 2 ** 9)
     pylab.show()
 
 

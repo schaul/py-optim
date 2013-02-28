@@ -1,4 +1,4 @@
-from scipy import mean
+from scipy import mean, isnan, isinf
 from numpy.matlib import repmat
 from pybrain.utilities import setAllArgs
 
@@ -16,6 +16,9 @@ class GradientBasedOptimizer(object):
     # target value (stop after the loss is lower)
     loss_target = None
     
+    # for debugging
+    verbose=False
+    
     def __init__(self, provider, init_params, **kwargs):
         self.provider = provider
         self.parameters = init_params.copy()
@@ -23,6 +26,8 @@ class GradientBasedOptimizer(object):
         self._num_updates = 0
         setAllArgs(self, kwargs)
         self._additionalInit()
+        if self.verbose:
+            self._printStuff()
         
     def _additionalInit(self):
         """ Abstract: initializations for subclasses. """
@@ -54,6 +59,11 @@ class GradientBasedOptimizer(object):
         self._updateParameters()
         self._num_updates += 1
         self.callback(self)
+        if self.verbose:
+            self._printStuff()
+            
+    def _printStuff(self):
+        """ Print some debugging info about the current status."""
         
     @property
     def bestParameters(self):
@@ -72,6 +82,9 @@ class GradientBasedOptimizer(object):
             l = self.provider.currentLosses(self.bestParameters)
             if mean(l) <= self.loss_target:
                 return True
+        if sum(isnan(self.parameters)) + sum(isnan(self.parameters)) > 0:
+            print 'Diverged'
+            return True
         return False
 
     def __str__(self):
@@ -101,6 +114,6 @@ class FiniteDifferenceHessians(GradientBasedOptimizer):
         tmp = self.provider.currentGradients(self.parameters + v)
         if self.batch_size > 1:
             v = repmat(v, self.batch_size, 1)
-        self._last_diaghessians = abs(self._last_gradients - tmp) / v  
+        self._last_diaghessians = abs((self._last_gradients - tmp) / v)  
 
 

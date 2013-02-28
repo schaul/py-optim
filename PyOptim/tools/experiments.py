@@ -1,8 +1,8 @@
-from scipy import ones, randn, array, reshape, ravel, mean
+from scipy import ones, randn, array, reshape, ravel, mean, median
 
 
 def lossTraces(fwrap, aclass, dim, maxsteps, storesteps=None, x0=None,
-               initNoise=0.01, minLoss=1e-10, algoparams={}):
+               initNoise=0., minLoss=1e-10, algoparams={}):
     """ Compute a number of loss curves, for the provided settings,
     stored at specific storestep points. """
     if not storesteps:
@@ -22,7 +22,7 @@ def lossTraces(fwrap, aclass, dim, maxsteps, storesteps=None, x0=None,
         
     # initialization    
     algo = aclass(fwrap, x0, callback=storer, **algoparams)
-    print algo, fwrap, dim    
+    print algo, fwrap, dim, maxsteps,
     
     # store initial step   
     algo.callback(algo)
@@ -34,4 +34,5 @@ def lossTraces(fwrap, aclass, dim, maxsteps, storesteps=None, x0=None,
     oloss = mean(fwrap.stochfun.expectedLoss(ones(100) * fwrap.stochfun.optimum))
     ls = abs(fwrap.stochfun.expectedLoss(ravel(paramtraces)) - oloss) + minLoss
     ls = reshape(ls, paramtraces.shape)
+    print median(ls[-1])
     return ls
