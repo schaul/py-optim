@@ -53,14 +53,15 @@ def testPlot3(trials=100, maxsteps=2 ** 10):
         pylab.title(aclass.__name__)        
     pylab.show()
     
-def testPlot4(trials=50, maxsteps=512):
+def testPlot4(trials=100, maxsteps=512):
     fun = StochAbs(noiseLevel=1., curvature=100)
     fwrap = FunctionWrapper(trials, fun, record_samples=True)
     fwrap.nextSamples(100000)
     fwrap = DatasetWrapper(fwrap._seen, fun, shuffling=False)
     
-    for i, (aclass, aparams) in enumerate([(vSGD, {}),
-                                           (vSGDfd, {}),
+    for i, (aclass, aparams) in enumerate([(vSGDfd, {'batch_size':2}),
+                                           #(vSGDfd, {'batch_size':10, 'verbose':True}),
+                                           (vSGDfd, {'batch_size':10, 'outlier_level':1}),
                                            ]):
         pylab.subplot(2, 1, 2)
         fwrap.reset()

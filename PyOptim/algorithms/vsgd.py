@@ -4,15 +4,16 @@ from core.gradientalgos import BbpropHessians, FiniteDifferenceHessians
 
 
 class vSGD(SGD, BbpropHessians):
-    """ vSGD: SGD with variance-adapted learning rates. """
+    """ vSGD: SGD with variance-adapted learning rates,
+    as described in Schaul, Zhang & LeCun 2012. """
 
     # how to initialize the running averages
     slow_constant = 2
     init_samples = 10
     
     # avoiding numerical instability
-    epsilon = 1e-5
-    outlier_level = None #2
+    epsilon = 1e-9
+    outlier_level = 1
 
     def _additionalInit(self):
         # default setting
@@ -77,9 +78,15 @@ class vSGD(SGD, BbpropHessians):
         return self._vpart / self._hbar
                                   
                                   
+class vSGD_original(vSGD):
+    """ The original version from 2012 had not outlier detection. """
+    outlier_level = None    
+                                  
+                                  
 class vSGDfd(FiniteDifferenceHessians, vSGD):
-    """ vSGD with finite-difference estimate of diagonal Hessian """
-        
+    """ vSGD with finite-difference estimate of diagonal Hessian,
+    as described in Schaul & LeCun 2013. """
+            
     @property
     def learning_rate(self):            
         return self._vpart * (self._hbar / self._vhbar)

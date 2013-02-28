@@ -33,27 +33,25 @@ algo_variants = {SGD: [{'learning_rate':1},
                             {'init_lr':0.01},
                             ],
                  vSGD: [{},
-                        #{'batch_size':10},
+                        {'batch_size':10},
                         ],
                  vSGDfd: [{},
-                          #{'verbose':True},
-                          #{'outlier_level':2},
-                          #{'slow_constant':10},
-                          #{'batch_size':10},
+                          {'batch_size':10},
                           ],
                  OracleSGD: [{}],
                  } 
 
 fun_settings = [#{'noiseLevel':100},
-                #{'curvature':0.1, 'noiseLevel':10},
-                #{'noiseLevel':10},
-                #{},
+                {'curvature':10, 'noiseLevel':10},
+                {'noiseLevel':10},
+                {'curvature':0.1, 'noiseLevel':10},
+                {},
                 #{'curvature':0.1},
                 #{'curvature':10},
-                #{'curvature':0.01},
+                {'curvature':0.01},
                 {'curvature':100},
-                #{'noiseLevel':0.1},
-                #{'curvature':10, 'noiseLevel':0.1},
+                {'noiseLevel':0.1},
+                {'curvature':10, 'noiseLevel':0.1},
                 #{'noiseLevel':0.01},
                 ]
 
@@ -106,8 +104,8 @@ def test1():
                          #OracleSGD, 
                          #Amari,
                          ], algo_variants,
-                        fun_classes[2:3],
-                        fun_settings, 50, 2 ** 9)
+                        fun_classes[:],
+                        fun_settings, 25, 2 ** 8)
     pylab.show()
 
 
