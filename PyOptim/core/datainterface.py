@@ -111,6 +111,7 @@ class DatasetWrapper(FunctionWrapper):
             tmp = 0
         if tmp == 0 and self.shuffling:
             shuffle(self._indices)
+        assert len(self.dataset) > self.batch_size, 'Dataset smaller than batchsize'            
         return self._indices[tmp] 
         
     def _provide(self):

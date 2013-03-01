@@ -1,4 +1,4 @@
-from scipy import mean, ones_like, clip, logical_or
+from scipy import mean, ones_like, clip, logical_or, median
 from sgd import SGD
 from core.gradientalgos import BbpropHessians, FiniteDifferenceHessians
 
@@ -39,6 +39,15 @@ class vSGD(SGD, BbpropHessians):
         # time constants
         self._taus = (ones_like(self.parameters) + self.epsilon) * self.init_samples
         
+        # for debugging
+        self._print_quantities = [('tau', self._taus), 
+                                  ('p', self.parameters), 
+                                  ('v', self._vbar), 
+                                  ('g', self._gbar),
+                                  ('vpa', self._gbar**2/self._vbar), 
+                                  ('h', self._hbar),
+                                  ]
+        
     
     def _detectOutliers(self):
         """ Binary vector for which dimension saw an outlier gradient. """
@@ -76,6 +85,13 @@ class vSGD(SGD, BbpropHessians):
     @property
     def learning_rate(self):
         return self._vpart / self._hbar
+    
+    def _printStuff(self):
+        print self._num_updates, 
+        for n, a in self._print_quantities:
+            print n, round(median(a),4), '\t',
+        print
+        
                                   
                                   
 class vSGD_original(vSGD):
@@ -94,7 +110,10 @@ class vSGDfd(FiniteDifferenceHessians, vSGD):
     def _additionalInit(self):
         vSGD._additionalInit(self)
         h2s = clip(mean(self._last_diaghessians **2, axis=0), 1, 1/self.epsilon)
-        self._vhbar = h2s * self.slow_constant**2        
+        self._vhbar = h2s * self.slow_constant**2     
+        self._print_quantities.extend([('vh', self._vhbar),
+                                       ('hpa', self._hbar/self._vhbar),
+                                       ])   
     
     def _computeStatistics(self):
         vSGD._computeStatistics(self)
@@ -119,18 +138,3 @@ class vSGDfd(FiniteDifferenceHessians, vSGD):
         del hs, var
         return res
 
-    def _printStuff(self):
-        from scipy import median
-        print self._num_updates, 
-        for n, a in [('tau', self._taus), 
-                     ('p', self.parameters), 
-                     ('v', self._vbar), 
-                     ('g', self._gbar),
-                     ('vpa', self._gbar**2/self._vbar), 
-                     ('h', self._hbar),
-                     ('vh', self._vhbar),
-                     ('hpa', self._hbar/self._vhbar),
-                     ]:
-            print n, round(median(a),4), '\t',
-        print
-        

@@ -15,8 +15,11 @@ class SGD(GradientBasedOptimizer):
 class AnnealingSGD(SGD):
     """ SGD with decaying learning rates """
     init_lr = 1e-3
-    lr_decay = None
+    lr_decay = 1e-2
     
     @property
     def learning_rate(self):
-        return self.init_lr / (1. + self._num_updates * self.lr_decay)  
+        if self.lr_decay == 0:
+            return self.init_lr
+        else:
+            return self.init_lr / (1. + self._num_updates * self.lr_decay)  

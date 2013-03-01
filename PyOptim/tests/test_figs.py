@@ -14,16 +14,16 @@ def testPlot1(trials=20):
     pylab.show()
 
 
-def testPlot2(trials=100, maxsteps=250):
-    f = FunctionWrapper(trials, StochQuad(noiseLevel=1, curvature=1))
-    for aclass, aparams in [(SGD, {'learning_rate':0.1}),
-                            (SGD, {'learning_rate':0.01}),
-                            (AdaGrad, {'init_lr':0.3}),
-                            (Amari, {'init_lr':0.1, 'time_const':100}),
-                            (RMSProp, {'init_lr':0.1}),
-                            (OracleSGD, {}),
-                            (vSGD, {}),
-                            (vSGDfd, {}),
+def testPlot2(trials=51, maxsteps=10000):
+    f = FunctionWrapper(trials, StochQuad(noiseLevel=100, curvature=1))
+    for aclass, aparams in [#(SGD, {'learning_rate':0.1}),
+                            #(SGD, {'learning_rate':0.01}),
+                            #(AdaGrad, {'init_lr':0.3}),
+                            #(Amari, {'init_lr':0.1, 'time_const':100}),
+                            #(RMSProp, {'init_lr':0.1}),
+                            #(OracleSGD, {}),
+                            (vSGD, {'verbose':False}),
+                            #(vSGDfd, {}),
                             ]:
         ls = lossTraces(fwrap=f, aclass=aclass, dim=trials,
                         maxsteps=maxsteps, algoparams=aparams)
@@ -53,15 +53,14 @@ def testPlot3(trials=100, maxsteps=2 ** 10):
         pylab.title(aclass.__name__)        
     pylab.show()
     
-def testPlot4(trials=100, maxsteps=512):
-    fun = StochAbs(noiseLevel=1., curvature=100)
+def testPlot4(trials=40, maxsteps=512):
+    fun = StochQuad(noiseLevel=100., curvature=1)
     fwrap = FunctionWrapper(trials, fun, record_samples=True)
     fwrap.nextSamples(100000)
     fwrap = DatasetWrapper(fwrap._seen, fun, shuffling=False)
     
-    for i, (aclass, aparams) in enumerate([(vSGDfd, {'batch_size':2}),
-                                           #(vSGDfd, {'batch_size':10, 'verbose':True}),
-                                           (vSGDfd, {'batch_size':10, 'outlier_level':1}),
+    for i, (aclass, aparams) in enumerate([(vSGD, {'batch_size':1}),
+                                           (vSGDfd, {'batch_size':1}),
                                            ]):
         pylab.subplot(2, 1, 2)
         fwrap.reset()
@@ -81,6 +80,6 @@ def testPlot4(trials=100, maxsteps=512):
     
 if __name__ == "__main__":
     #testPlot1()
-    #testPlot2()
+    testPlot2()
     #testPlot3()
-    testPlot4()
+    #testPlot4()

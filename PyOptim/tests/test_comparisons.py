@@ -4,17 +4,22 @@ from tools.plotting import plotHeatmap
 from tools.experiments import lossTraces
 from core.datainterface import FunctionWrapper, DatasetWrapper
 
-from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGD, MomentumSGD, vSGDfd
+from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGD, MomentumSGD, vSGDfd, AnnealingSGD
 from benchmarks.stoch_1d import StochQuad, StochAbs, StochRectLin, StochGauss
 
 
 algo_variants = {SGD: [{'learning_rate':1},
                        {'learning_rate':0.1},
-                       {'learning_rate':0.1, 'batch_size':10},
                        {'learning_rate':0.01},
-                       {'learning_rate':0.01, 'batch_size':10},
                        {'learning_rate':0.001},
                        ],
+                 AnnealingSGD: [{'init_lr':1, 'lr_decay':0.01},
+                                {'init_lr':0.1, 'lr_decay':0.01},
+                                {'init_lr':0.01, 'lr_decay':0.01},
+                                {'init_lr':1, 'lr_decay':0.1},
+                                {'init_lr':0.1, 'lr_decay':0.1},
+                                {'init_lr':0.01, 'lr_decay':0.1},
+                                ], 
                  MomentumSGD: [{'learning_rate':0.1, 'momentum':0.5},
                                {'learning_rate':0.01, 'momentum':0.5},
                                {'learning_rate':0.1, 'momentum':0.995},
@@ -24,35 +29,34 @@ algo_variants = {SGD: [{'learning_rate':1},
                            {'init_lr':0.1},
                            {'init_lr':0.01},
                            ],
-                 Amari: [{'init_lr':1, 'time_const':100},
+                 Amari: [{'init_lr':0.1, 'time_const':10},
+                         {'init_lr':1, 'time_const':100},
                          {'init_lr':0.1, 'time_const':100},
                          {'init_lr':0.01, 'time_const':100},
+                         {'init_lr':0.1, 'time_const':1000},
                          ],
                  RMSProp : [{'init_lr':1},
                             {'init_lr':0.1},
                             {'init_lr':0.01},
                             ],
                  vSGD: [{},
-                        {'batch_size':10},
                         ],
                  vSGDfd: [{},
-                          {'batch_size':10},
                           ],
                  OracleSGD: [{}],
                  } 
 
-fun_settings = [#{'noiseLevel':100},
-                {'curvature':10, 'noiseLevel':10},
+fun_settings = [{'noiseLevel':100},
+                {'curvature':100, 'noiseLevel':10},
                 {'noiseLevel':10},
-                {'curvature':0.1, 'noiseLevel':10},
-                {},
-                #{'curvature':0.1},
-                #{'curvature':10},
-                {'curvature':0.01},
+                {'curvature':0.01, 'noiseLevel':10},
                 {'curvature':100},
+                {},
+                {'curvature':0.01},
+                {'curvature':100, 'noiseLevel':0.1},
                 {'noiseLevel':0.1},
-                {'curvature':10, 'noiseLevel':0.1},
-                #{'noiseLevel':0.01},
+                {'curvature':0.01, 'noiseLevel':0.1},
+                {'noiseLevel':0.01},
                 ]
 
 fun_classes = [StochQuad, StochGauss,
@@ -81,7 +85,7 @@ def plotAllCombinations(aclasses, avariants,
                     # shared samples across all uses of one function
                     fun = fclass()
                     fwrap = FunctionWrapper(trials, fun, record_samples=True)
-                    fwrap.nextSamples(maxbatchsize * maxsteps)
+                    fwrap.nextSamples(maxbatchsize * (maxsteps+10))
                     fundic[fc_id] = fwrap._seen
                 data = fundic[fc_id]
                 for fs_id, fsettings in enumerate(fvariants):
@@ -94,7 +98,7 @@ def plotAllCombinations(aclasses, avariants,
                     if ac_id == 0 and as_id == 0 and fs_id == f_mid:
                         pylab.title(fclass.__name__[5:])
                     if fs_id == 0 and as_id == a_mid:
-                        pylab.ylabel(aclass.__name__[:5])
+                        pylab.ylabel(aclass.__name__[:6])
     pylab.subplots_adjust(left=0.1, bottom=0.01, right=0.99, top=0.9, wspace=0.05, hspace=0.05)        
     
 def test1():
@@ -106,6 +110,24 @@ def test1():
                          ], algo_variants,
                         fun_classes[:],
                         fun_settings, 25, 2 ** 8)
+    pylab.show()
+
+def test2():
+    additional_bs = [1, 
+                     #10,
+                     ]
+    for k, vl in algo_variants.items():
+        algo_variants[k] = [dict(batch_size=b, **d) for b in additional_bs for d in vl] 
+            
+    plotAllCombinations([#SGD, 
+                         #AnnealingSGD, MomentumSGD,
+                         #AdaGrad, Amari,RMSProp,
+                         vSGD,
+                         vSGDfd, 
+                         #OracleSGD, 
+                         ], algo_variants,
+                        fun_classes[:],
+                        fun_settings, 50, 2 ** 8)
     pylab.show()
 
 
@@ -128,5 +150,6 @@ def testSpeed():
     
 
 if __name__ == '__main__':
-    test1()
+    #test1()
     #testSpeed()
+    test2()
