@@ -2,7 +2,7 @@ import pylab
 from scipy import median
 from tools.plotting import plotHeatmap
 from tools.experiments import lossTraces
-from core.datainterface import FunctionWrapper, DatasetWrapper
+from core.datainterface import FunctionWrapper, DataFunctionWrapper
 
 from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGD, MomentumSGD, vSGDfd, AnnealingSGD
 from benchmarks.stoch_1d import StochQuad, StochAbs, StochRectLin, StochGauss
@@ -92,7 +92,7 @@ def plotAllCombinations(aclasses, avariants,
                     if fs_id == 0 and fc_id > 0:
                         ploti += 1
                     fun = fclass(**fsettings)
-                    provider = DatasetWrapper(data, fun, shuffling=False)            
+                    provider = DataFunctionWrapper(data, fun, shuffling=False)            
                     pylab.subplot(rows, cols, ploti); ploti += 1
                     plotHeatmap(provider, aclass, aparams, trials, maxsteps)
                     if ac_id == 0 and as_id == 0 and fs_id == f_mid:

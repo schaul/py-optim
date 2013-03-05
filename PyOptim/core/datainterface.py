@@ -32,6 +32,9 @@ class SampleProvider(object):
     
     def _provide(self):
         """ abstract """
+            
+    def reset(self):
+        """ abstract """            
         
     def currentGradients(self, params):
         if self.batch_size > 1:
@@ -58,6 +61,7 @@ class SampleProvider(object):
             return reshape(res, (self.batch_size, self.paramdim))
         else:
             return self.diaghess_fun(params)
+        
     
 class FunctionWrapper(SampleProvider):
     """ Specialized case for a function that can generate samples on the fly. """
@@ -80,28 +84,22 @@ class FunctionWrapper(SampleProvider):
                 self._seen.append(ls)
             else:
                 for l in reshape(ls, (self.batch_size, self.paramdim)):
-                    self._seen.append(l)
+                    self._seen.append(reshape(l, (1, self.paramdim)))
                     
-    def reset(self):
-        """ Nothing to be done. """
-            
     def __str__(self):
         return self.stochfun.__class__.__name__+" n=%s curv=%s "%(self.stochfun.noiseLevel, self.stochfun.curvature)
 
-class DatasetWrapper(FunctionWrapper):
+
+class DatasetWrapper(SampleProvider):
     """ Specialized case for datasets """
     
     shuffling = True
-    
-    def __init__(self, dataset, stochfun, **kwargs):
-        self.dataset = dataset
-        assert len(dataset) > 0, 'Must be non-empty'
-        dim = dataset[0].size
-        self._indices = range(len(self.dataset))
-        self.reset()
-        FunctionWrapper.__init__(self, dim, stochfun, **kwargs)
         
-    def reset(self):
+    def reset(self, dataset=None):
+        if dataset is not None:
+            self.dataset = dataset
+            assert len(dataset) > 0, 'Must be non-empty'
+            self._indices = range(len(self.dataset))
         self._counter = 0                
         
     def getIndex(self):
@@ -113,6 +111,55 @@ class DatasetWrapper(FunctionWrapper):
             shuffle(self._indices)
         assert len(self.dataset) > self.batch_size, 'Dataset smaller than batchsize'            
         return self._indices[tmp] 
+        
+        
+class ModuleWrapper(DatasetWrapper):
+    """ A wrapper around a PyBrain module that defines a forward-backward,
+    and a corresponding dataset. """
+    
+    def __init__(self, dataset, module, **kwargs):
+        setAllArgs(self, kwargs)
+        self.module = module
+        self.paramdim = module.paramdim
+        self._ready = False
+        self.reset(dataset)
+    
+    def _provide(self):
+        assert self.batch_size == 1, 'Minibatches not yet supported'
+        self._currentSample = self.dataset.getSample(self.getIndex())
+        self._counter += self.batch_size
+        self._ready = False
+        
+    def loss_fun(self, params):
+        self._forwardBackward(params)
+        return self._last_loss
+    
+    def gradient_fun(self, params):
+        self._forwardBackward(params)
+        return reshape(self._last_grad, (1, self.batch_size * self.paramdim))
+    
+    def _forwardBackward(self, params):
+        if self._ready:
+            return
+        self.module._setParameters(params)
+        self.module.resetDerivatives()
+        outp = self.module.activate(self._currentSample[0])
+        targ = self._currentSample[1]
+        self._last_loss = 0.5 * sum((outp - targ)**2)
+        self.module.backActivate(outp-targ)
+        self._last_grad = self.module.derivs.copy()
+        #print self._last_grad
+        self._ready = True
+        
+        
+
+class DataFunctionWrapper(DatasetWrapper, FunctionWrapper):
+    """ Data from a stochastic function. """   
+    
+    def __init__(self, dataset, stochfun, **kwargs):
+        dim = dataset[0].size
+        FunctionWrapper.__init__(self, dim, stochfun, **kwargs) 
+        self.reset(dataset)
         
     def _provide(self):
         i = self.getIndex()
