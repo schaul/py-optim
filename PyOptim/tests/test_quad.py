@@ -1,6 +1,6 @@
 from scipy import ones, mean
 
-from core.datainterface import FunctionWrapper, DatasetWrapper
+from core.datainterface import FunctionWrapper, DataFunctionWrapper
 from benchmarks.stoch_1d import StochQuad
 from algorithms.sgd import SGD
 from algorithms.amari import Amari
@@ -48,7 +48,7 @@ def testAlgos(dim=3):
     fw = FunctionWrapper(dim, f, record_samples=True)
     [fw.nextSamples(1) for _ in range(100)]
     ds = fw._seen
-    dw = DatasetWrapper(ds, f, shuffling=False)
+    dw = DataFunctionWrapper(ds, f, shuffling=False)
     
     x0 = ones(dim)
     for algoclass in [SGD, SGD, OracleSGD, Almeida, Amari, RMSProp, AdaGrad,
@@ -69,7 +69,7 @@ def testMinibatch(dim=4):
         algo.run(10)
         print
     [fw.nextSamples(1) for _ in range(2500)]
-    dw = DatasetWrapper(fw._seen, f, shuffling=False)
+    dw = DataFunctionWrapper(fw._seen, f, shuffling=False)
     print 'Fixed samples'
     for mb in [1,3,15,250]:
         print 'minibatch', mb

@@ -1,5 +1,5 @@
 from tools.experiments import lossTraces
-from core.datainterface import FunctionWrapper, DatasetWrapper
+from core.datainterface import FunctionWrapper, DataFunctionWrapper
 from benchmarks.stoch_1d import StochQuad, StochAbs
 from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGDfd, vSGD
 from tools.plotting import plotWithPercentiles, algo_colors, plotHeatmap
@@ -57,7 +57,7 @@ def testPlot4(trials=40, maxsteps=512):
     fun = StochQuad(noiseLevel=100., curvature=1)
     fwrap = FunctionWrapper(trials, fun, record_samples=True)
     fwrap.nextSamples(100000)
-    fwrap = DatasetWrapper(fwrap._seen, fun, shuffling=False)
+    fwrap = DataFunctionWrapper(fwrap._seen, fun, shuffling=False)
     
     for i, (aclass, aparams) in enumerate([(vSGD, {'batch_size':1}),
                                            (vSGDfd, {'batch_size':1}),
