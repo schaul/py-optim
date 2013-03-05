@@ -136,7 +136,7 @@ class ModuleWrapper(DatasetWrapper):
     
     def gradient_fun(self, params):
         self._forwardBackward(params)
-        return self._last_grad
+        return reshape(self._last_grad, (1, self.batch_size * self.paramdim))
     
     def _forwardBackward(self, params):
         if self._ready:
@@ -145,9 +145,10 @@ class ModuleWrapper(DatasetWrapper):
         self.module.resetDerivatives()
         outp = self.module.activate(self._currentSample[0])
         targ = self._currentSample[1]
-        print outp, targ
         self._last_loss = 0.5 * sum((outp - targ)**2)
+        self.module.backActivate(outp-targ)
         self._last_grad = self.module.derivs.copy()
+        #print self._last_grad
         self._ready = True
         
         
