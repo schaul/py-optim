@@ -19,4 +19,4 @@ Issues considered:
 Dependencies
 ------------
 * [SciPy](http://www.scipy.org)
-* [PyBrain](htttp://www.pybrain.org)
+* [PyBrain](http://www.pybrain.org)
