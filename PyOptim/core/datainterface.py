@@ -121,7 +121,8 @@ class DatasetWrapper(SampleProvider):
             tmp = 0
         if tmp == 0 and self.shuffling:
             shuffle(self._indices)
-        assert len(self.dataset) >= self.batch_size, 'Dataset smaller than batchsize'            
+        if len(self.dataset) < self.batch_size:
+            print  'WARNING: Dataset smaller than batchsize'            
         return self._indices[tmp] 
         
         
@@ -139,7 +140,8 @@ class ModuleWrapper(DatasetWrapper):
     
     def _provide(self):
         start = self.getIndex()
-        self._currentSamples = [self.dataset.getSample(si) for si in range(start, start+self.batch_size)]
+        # reuse samples multiple times if the dataset is too smalle
+        self._currentSamples = [self.dataset.getSample(si%len(self.dataset)) for si in range(start, start+self.batch_size)]
         self._counter += self.batch_size
         self._ready = False
         
@@ -159,6 +161,7 @@ class ModuleWrapper(DatasetWrapper):
         for inp, targ in self._currentSamples:
             self.module._setParameters(params)
             self.module.resetDerivatives()
+            self.module.reset()
             outp = self.module.activate(inp)
             losses.append(0.5 * sum((outp - targ)**2))
             self.module.backActivate(outp-targ)
