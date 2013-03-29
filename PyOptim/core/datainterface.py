@@ -36,32 +36,18 @@ class SampleProvider(object):
     def reset(self):
         """ abstract """            
         
-    def currentGradients(self, params):
-        if self.batch_size > 1:
-            params = repmat(params, 1, self.batch_size)
-            res = self.gradient_fun(params)            
-            return reshape(res, (self.batch_size, self.paramdim))
-        else:
-            return self.gradient_fun(params)
-        
     def currentLosses(self, params):
-        if self.batch_size > 1:
-            params = repmat(params, 1, self.batch_size)
-            res = self.loss_fun(params)
-            return reshape(res, (self.batch_size, self.paramdim))
-        else:
-            return self.loss_fun(params)
-        
+        return self.loss_fun(params) 
+    
+    def currentGradients(self, params):
+        return self.gradient_fun(params)       
+    
     def currentDiagHess(self, params):
         if self.diaghess_fun is None:
             return
-        if self.batch_size > 1:
-            params = repmat(params, 1, self.batch_size)
-            res = self.diaghess_fun(params)
-            return reshape(res, (self.batch_size, self.paramdim))
-        else:
-            return self.diaghess_fun(params)
-        
+        return self.diaghess_fun(params)
+    
+
     
 class FunctionWrapper(SampleProvider):
     """ Specialized case for a function that can generate samples on the fly. """
@@ -85,7 +71,33 @@ class FunctionWrapper(SampleProvider):
             else:
                 for l in reshape(ls, (self.batch_size, self.paramdim)):
                     self._seen.append(reshape(l, (1, self.paramdim)))
-                    
+
+    def currentLosses(self, params):
+        if self.batch_size > 1:
+            params = repmat(params, 1, self.batch_size)
+            res = self.loss_fun(params)
+            return reshape(res, (self.batch_size, self.paramdim))
+        else:
+            return self.loss_fun(params)
+
+    def currentGradients(self, params):
+        if self.batch_size > 1:
+            params = repmat(params, 1, self.batch_size)
+            res = self.gradient_fun(params)            
+            return reshape(res, (self.batch_size, self.paramdim))
+        else:
+            return self.gradient_fun(params)
+        
+    def currentDiagHess(self, params):
+        if self.diaghess_fun is None:
+            return
+        if self.batch_size > 1:
+            params = repmat(params, 1, self.batch_size)
+            res = self.diaghess_fun(params)
+            return reshape(res, (self.batch_size, self.paramdim))
+        else:
+            return self.diaghess_fun(params)
+            
     def __str__(self):
         return self.stochfun.__class__.__name__+" n=%s curv=%s "%(self.stochfun.noiseLevel, self.stochfun.curvature)
 
@@ -104,18 +116,19 @@ class DatasetWrapper(SampleProvider):
         
     def getIndex(self):
         tmp = self._counter % len(self.dataset)
-        if tmp + self.batch_size >= len(self.dataset):
+        if tmp + self.batch_size > len(self.dataset):
             # dataset is not a multiple of batchsizes
             tmp = 0
         if tmp == 0 and self.shuffling:
             shuffle(self._indices)
-        assert len(self.dataset) > self.batch_size, 'Dataset smaller than batchsize'            
+        assert len(self.dataset) >= self.batch_size, 'Dataset smaller than batchsize'            
         return self._indices[tmp] 
         
         
 class ModuleWrapper(DatasetWrapper):
     """ A wrapper around a PyBrain module that defines a forward-backward,
-    and a corresponding dataset. """
+    and a corresponding dataset. 
+    Assumption: MSE of targets is the criterion used. """
     
     def __init__(self, dataset, module, **kwargs):
         setAllArgs(self, kwargs)
@@ -125,32 +138,34 @@ class ModuleWrapper(DatasetWrapper):
         self.reset(dataset)
     
     def _provide(self):
-        assert self.batch_size == 1, 'Minibatches not yet supported'
-        self._currentSample = self.dataset.getSample(self.getIndex())
+        start = self.getIndex()
+        self._currentSamples = [self.dataset.getSample(si) for si in range(start, start+self.batch_size)]
         self._counter += self.batch_size
         self._ready = False
         
     def loss_fun(self, params):
         self._forwardBackward(params)
         return self._last_loss
-    
+        
     def gradient_fun(self, params):
         self._forwardBackward(params)
-        return reshape(self._last_grad, (1, self.batch_size * self.paramdim))
+        return self._last_grads
     
     def _forwardBackward(self, params):
         if self._ready:
             return
-        self.module._setParameters(params)
-        self.module.resetDerivatives()
-        outp = self.module.activate(self._currentSample[0])
-        targ = self._currentSample[1]
-        self._last_loss = 0.5 * sum((outp - targ)**2)
-        self.module.backActivate(outp-targ)
-        self._last_grad = self.module.derivs.copy()
-        #print self._last_grad
+        losses = []
+        grads = []
+        for inp, targ in self._currentSamples:
+            self.module._setParameters(params)
+            self.module.resetDerivatives()
+            outp = self.module.activate(inp)
+            losses.append(0.5 * sum((outp - targ)**2))
+            self.module.backActivate(outp-targ)
+            grads.append(self.module.derivs.copy())
+        self._last_loss = array(losses)
+        self._last_grads = reshape(array(grads), (self.batch_size, self.paramdim))
         self._ready = True
-        
         
 
 class DataFunctionWrapper(DatasetWrapper, FunctionWrapper):

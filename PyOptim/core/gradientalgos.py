@@ -1,4 +1,4 @@
-from scipy import mean, isnan, isinf
+from scipy import mean, isnan
 from numpy.matlib import repmat
 from pybrain.utilities import setAllArgs
 
