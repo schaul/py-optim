@@ -70,7 +70,8 @@ class GradientBasedOptimizer(object):
         return self.parameters
     
     def run(self, maxsteps=None):
-        while not self.terminate(maxsteps):
+        tmp = maxsteps+self._num_updates
+        while not self.terminate(tmp):
             self.oneStep()
     
     def terminate(self, maxsteps):
