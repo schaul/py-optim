@@ -121,8 +121,8 @@ class DatasetWrapper(SampleProvider):
             tmp = 0
         if tmp == 0 and self.shuffling:
             shuffle(self._indices)
-        if len(self.dataset) < self.batch_size:
-            print  'WARNING: Dataset smaller than batchsize'            
+        #if len(self.dataset) < self.batch_size:
+        #    print  'WARNING: Dataset smaller than batchsize'            
         return self._indices[tmp] 
         
         
@@ -150,6 +150,7 @@ class ModuleWrapper(DatasetWrapper):
         return self._last_loss
         
     def gradient_fun(self, params):
+        self._ready = False
         self._forwardBackward(params)
         return self._last_grads
     
