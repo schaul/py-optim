@@ -1,5 +1,5 @@
 from random import shuffle
-from scipy import reshape, array
+from scipy import reshape, array, log, exp
 from numpy.matlib import repmat
 from pybrain.utilities import setAllArgs
     
@@ -171,6 +171,36 @@ class ModuleWrapper(DatasetWrapper):
         self._last_grads = reshape(array(grads), (self.batch_size, self.paramdim))
         self._ready = True
         
+        
+class ClassificationModuleWrapper(ModuleWrapper):
+    """ A wrapper around a PyBrain module that is used to classify, with
+    a cross-entropy loss function (not MSE) and an implicit softmax on the module outputs
+    (i.e., the network output is interpreted as unnormalized log-probabilities). """
+    
+    def _forwardBackward(self, params):
+        if self._ready:
+            return
+        losses = []
+        grads = []
+        for inp, targ in self._currentSamples:
+            self.module._setParameters(params)
+            self.module.resetDerivatives()
+            self.module.reset()
+            # the outputs are interpreted as unnormalized log-probabilities
+            outp = self.module.activate(inp)
+            # which need to be normalized (carefully) to sum to 1 (this is the implicit softmax)
+            logprob = (outp - max(outp)) - log(sum(exp(outp - max(outp))))
+            # the cross-entropy loss, which requires target probabilities
+            assert abs(sum(targ)-1) < 1e-6, targ
+            losses.append(-sum(targ * logprob))
+            # these are the softmax derivatives on the original network
+            #print outp, logprob, targ, losses[-1]
+            self.module.backActivate(exp(logprob)-targ)
+            grads.append(self.module.derivs.copy())
+        self._last_loss = array(losses)
+        self._last_grads = reshape(array(grads), (self.batch_size, self.paramdim))
+        self._ready = True
+    
 
 class DataFunctionWrapper(DatasetWrapper, FunctionWrapper):
     """ Data from a stochastic function. """   

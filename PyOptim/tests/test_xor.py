@@ -1,7 +1,7 @@
 from pybrain.tools.shortcuts import buildNetwork
 from pybrain.supervised import BackpropTrainer
 from pybrain.datasets import SupervisedDataSet
-from core.datainterface import ModuleWrapper
+from core.datainterface import ModuleWrapper, ClassificationModuleWrapper
 from algorithms.sgd import SGD
 from algorithms.vsgd import vSGDfd
 from scipy import mean
@@ -9,12 +9,19 @@ from scipy import mean
 
 class XORDataSet(SupervisedDataSet):
     """ A dataset for the XOR function."""
-    def __init__(self):
-        SupervisedDataSet.__init__(self, 2, 1)
-        self.addSample([0, 0], [0])
-        self.addSample([0, 1], [1])
-        self.addSample([1, 0], [1])
-        self.addSample([1, 1], [0])
+    def __init__(self, oneInN=False):
+        if oneInN:
+            SupervisedDataSet.__init__(self, 2, 2)
+            self.addSample([0, 0], [0, 1])
+            self.addSample([0, 1], [1, 0])
+            self.addSample([1, 0], [1, 0])
+            self.addSample([1, 1], [0, 1])
+        else:
+            SupervisedDataSet.__init__(self, 2, 1)
+            self.addSample([0, 0], [0])
+            self.addSample([0, 1], [1])
+            self.addSample([1, 0], [1])
+            self.addSample([1, 1], [0])
 
 
 def printy(s):
@@ -79,5 +86,43 @@ def testSome():
     net._setParameters(p0)
     
     
+def testNewTraining3(hidden=15, n=None):
+    d = XORDataSet(True)
+    if n is None:
+        n = buildNetwork(d.indim, hidden, d.outdim, recurrent=False)
+    provider = ClassificationModuleWrapper(d, n, shuffling=False)
+    algo = SGD(provider, n.params.copy(), callback=printy, learning_rate=0.01, momentum=0.99)
+    algo.run(1000)
+    
+def testNewTraining4(hidden=15, n=None):
+    d = XORDataSet(True)
+    if n is None:
+        n = buildNetwork(d.indim, hidden, d.outdim, recurrent=False)
+    provider = ClassificationModuleWrapper(d, n, shuffling=False)
+    algo = vSGDfd(provider, n.params.copy(), callback=printy)
+    algo.run(1000)
+    
+def testCE(hidden=15):
+    """ Test when doing the classification using the cross-entropy loss."""
+    
+    d = XORDataSet(True)
+    n = buildNetwork(d.indim, hidden, d.outdim, recurrent=False)
+    p0 = n.params.copy()
+    
+    provider = ClassificationModuleWrapper(d, n, shuffling=False)
+    algo = SGD(provider, n.params.copy(), callback=printy, learning_rate=0.01, momentum=0.99)
+    print '\n' * 2
+    print 'SGD-CE'
+    algo.run(1000)
+    
+    n._setParameters(p0)
+    provider = ClassificationModuleWrapper(d, n, shuffling=False)
+    algo = vSGDfd(provider, n.params.copy(), callback=printy)
+    print '\n' * 2
+    print 'vSGD-CE'
+    algo.run(1000)
+    
+    
 if __name__ == '__main__':
-    testSome()
+    #testSome()
+    testCE()
