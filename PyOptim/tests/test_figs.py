@@ -1,7 +1,7 @@
 from tools.experiments import lossTraces
 from core.datainterface import FunctionWrapper, DataFunctionWrapper
 from benchmarks.stoch_1d import StochQuad, StochAbs
-from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGDfd, vSGD
+from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGDfd, vSGD, AveragingSGD, AveragingOracle,AdaptivelyAveragingOracle
 from tools.plotting import plotWithPercentiles, algo_colors, plotHeatmap
 import pylab
 
@@ -14,15 +14,22 @@ def testPlot1(trials=20):
     pylab.show()
 
 
-def testPlot2(trials=51, maxsteps=10000):
-    f = FunctionWrapper(trials, StochQuad(noiseLevel=100, curvature=1))
+def testPlot2(trials=23, maxsteps=10000):
+    f = FunctionWrapper(trials, StochQuad(noiseLevel=55, curvature=1))
     for aclass, aparams in [#(SGD, {'learning_rate':0.1}),
                             #(SGD, {'learning_rate':0.01}),
+                            #(AveragingSGD, {'learning_rate':0.01}),
+                            #(AveragingSGD, {'learning_rate':0.01, 'fixedDecay':0.1}),
+                            #(AveragingSGD, {'learning_rate':0.01, 'fixedDecay':0.1}),
+                            #(AveragingSGD, {'learning_rate':0.1}),
+                            #(AveragingSGD, {'learning_rate':1.0}),
+                            (AveragingOracle, {}),
+                            (AdaptivelyAveragingOracle, {}),
                             #(AdaGrad, {'init_lr':0.3}),
                             #(Amari, {'init_lr':0.1, 'time_const':100}),
                             #(RMSProp, {'init_lr':0.1}),
-                            #(OracleSGD, {}),
-                            (vSGD, {'verbose':False}),
+                            (OracleSGD, {}),
+                            #(vSGD, {'verbose':False}),
                             #(vSGDfd, {}),
                             ]:
         ls = lossTraces(fwrap=f, aclass=aclass, dim=trials,

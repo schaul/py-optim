@@ -36,11 +36,11 @@ def testSGD(dim=3):
     
     
 def testOracle(dim=3):
-    f = FunctionWrapper(dim, StochQuad(noiseLevel=0.2))
+    f = FunctionWrapper(dim, StochQuad(noiseLevel=0.1))
     x0 = ones(dim)
-    algo = OracleSGD(f, x0, callback=printy, loss_target=0.01)
+    algo = OracleSGD(f, x0, callback=printy, loss_target=1e-5)
     algo.run(100)
-    print
+    print mean(algo.parameters **2)
     
 def testAlgos(dim=3):
     # generate a dataset
@@ -82,6 +82,6 @@ def testMinibatch(dim=4):
 if __name__ == "__main__":
     #testWrapper()
     #testSGD()
-    #testOracle()
+    testOracle()
     #testAlgos()
-    testMinibatch()
+    #testMinibatch()

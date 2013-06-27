@@ -26,6 +26,7 @@ class GradientBasedOptimizer(object):
         self._num_updates = 0
         setAllArgs(self, kwargs)
         self._additionalInit()
+        self.callback(self)
         if self.verbose:
             self._printStuff()
         

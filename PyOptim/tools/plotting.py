@@ -4,7 +4,7 @@ from pylab import cm
     
 from tools import percentile
 from experiments import lossTraces
-from algorithms import SGD, AdaGrad, Amari, MomentumSGD, OracleSGD, RMSProp, vSGD, vSGDfd
+from algorithms import SGD, AdaGrad, Amari, MomentumSGD, OracleSGD, RMSProp, vSGD, vSGDfd, AveragingSGD, AveragingOracle, AdaptivelyAveragingOracle
 
 from matplotlib import rc
 rc('text', usetex=False)
@@ -17,6 +17,9 @@ algo_colors = {SGD: 'b',
                RMSProp: 'y',
                vSGD: 'g',
                vSGDfd: 'c',
+               AveragingSGD: 'r',
+               AveragingOracle: 'y', 
+               AdaptivelyAveragingOracle: 'm',
                }
 
 
