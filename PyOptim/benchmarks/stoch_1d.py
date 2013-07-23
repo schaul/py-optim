@@ -60,7 +60,7 @@ class StochFun(object):
             res = repmat(res, nsynch, 1)
         if self.outlierProb > rand():
             print 'OUT', nsynch, nsamples
-            res[:,randint(1,nsamples)] *= self.outlierLevel            
+            res[:, randint(1, nsamples)] *= self.outlierLevel            
         return res
         
     def _mask(self, shape):
@@ -72,11 +72,11 @@ class StochFun(object):
         return repmat(rand(1, nsamples) < self.sparsity, nsynch, 1)
     
     # these expectations should be overridden if a closed form is available.
-    ESamples= 500
+    ESamples = 500
     def expectedLoss(self, xs, seeded=None):
         """ True loss value, in expectation, for each value in xs. """
         if seeded is not None:
-            tmp = int(abs(randn()*1e6))
+            tmp = int(abs(randn() * 1e6))
             seed(seeded)
         self._newSample(len(xs), override=True)
         rxs = repmat(xs, self.ESamples, 1)
@@ -99,24 +99,24 @@ class StochFun(object):
     fd_eps = 0.5
     def expectedHessianFD(self, xs):
         """ Finite-difference approximation of the expected gradient """
-        tmp = zeros(len(xs)*2)
-        tmp[:len(xs)] = xs-self.fd_eps
-        tmp[len(xs):] = xs+self.fd_eps
+        tmp = zeros(len(xs) * 2)
+        tmp[:len(xs)] = xs - self.fd_eps
+        tmp[len(xs):] = xs + self.fd_eps
         g = self.expectedGradient(tmp)
-        return (-g[:len(xs)]+g[len(xs):])/self.fd_eps/2
+        return (-g[:len(xs)] + g[len(xs):]) / self.fd_eps / 2
     
     
     def empMinLossRate(self, xs, bsize=1):
         """ What is the step-size/learning rate that empirically leads to the minimum expected loss. """
-        candrates = exp(array(range(1,101))/25.-3)
+        candrates = exp(array(range(1, 101)) / 25. - 3)
         self.ESamples /= 10
-        outcomes = zeros((len(xs),len(candrates),self.ESamples))
+        outcomes = zeros((len(xs), len(candrates), self.ESamples))
         for i, r in enumerate(candrates):
             for j in range(self.ESamples):
                 for _ in range(bsize):
-                    outcomes[:,i,j] += xs/float(bsize) - r * self._df(xs)/float(bsize)
+                    outcomes[:, i, j] += xs / float(bsize) - r * self._df(xs) / float(bsize)
         ls = self.expectedLoss(ravel(outcomes))
-        ls = reshape(ls, (len(xs),len(candrates),self.ESamples))
+        ls = reshape(ls, (len(xs), len(candrates), self.ESamples))
         self.ESamples *= 10
         
         avgresults = mean(ls, axis=2)
@@ -128,9 +128,9 @@ class StochFun(object):
         """ What is the one-sample signal-to-noise ratio. """         
         rxs = repmat(xs, self.ESamples, 1).T
         gs = self._df(rxs)
-        g2s = mean(gs **2, axis=1)
+        g2s = mean(gs ** 2, axis=1)
         gs = mean(gs, axis=1)
-        return gs**2/g2s
+        return gs ** 2 / g2s
     
         
     def maxLogGain(self, numsamples, x0=1):
@@ -142,7 +142,7 @@ class StochAbs(StochFun):
     """ Absolute value, Gaussian noise on position of kink. """
         
     def _f(self, xs):
-        return abs(xs + self._noise(xs.shape))  * self.curvature
+        return abs(xs + self._noise(xs.shape)) * self.curvature
             
     def _df(self, xs):
         return sign(xs + self._noise(xs.shape)) * self.curvature
@@ -151,9 +151,9 @@ class StochAbs(StochFun):
         return zeros_like(xs)
 
     def expectedLoss(self, xs):
-        return (xs * erf(xs/sqrt(2*self.noiseLevel**2))
+        return (xs * erf(xs / sqrt(2 * self.noiseLevel ** 2))
                 + 
-                sqrt(2/pi)*self.noiseLevel * exp(-xs**2/2/self.noiseLevel**2)
+                sqrt(2 / pi) * self.noiseLevel * exp(-xs ** 2 / 2 / self.noiseLevel ** 2)
                 ) * self.curvature
     
     def __str__(self):
@@ -163,7 +163,7 @@ class StochAbs(StochFun):
     def maxLogGain(self, numsamples, x0=1):
         """ Maximal gain in loss, given a number of sample gradients
         (just the order of magnitude, for plotting scales) """
-        return max(0,log(numsamples)-log(self.noiseLevel)+2*log(abs(x0-self.optimum)))
+        return max(0, log(numsamples) - log(self.noiseLevel) + 2 * log(abs(x0 - self.optimum)))
 
 
 class StochRectLin(StochFun):
@@ -172,12 +172,12 @@ class StochRectLin(StochFun):
     optimum = -1e100
     
     def _f(self, xs):
-        tmp = xs + self._noise(xs.shape)-self.kink
-        return tmp*(tmp>0)  * self.curvature    
+        tmp = xs + self._noise(xs.shape) - self.kink
+        return tmp * (tmp > 0) * self.curvature    
             
     def _df(self, xs):
-        tmp = xs + self._noise(xs.shape)-self.kink
-        return (tmp>0)  * self.curvature
+        tmp = xs + self._noise(xs.shape) - self.kink
+        return (tmp > 0) * self.curvature
         
     def _ddf(self, xs):
         return zeros_like(xs)
@@ -187,27 +187,27 @@ class StochRectLin(StochFun):
     
     
     def maxLogGain(self, numsamples, x0=1):
-        return max(0,log(numsamples)-log(self.noiseLevel))
+        return max(0, log(numsamples) - log(self.noiseLevel))
 
 class StochGauss(StochFun):
     """ Upside-down Gaussian bump: concave function with Hessian changing all the time. """        
-    fmax =1.1
+    fmax = 1.1
     
     def _f(self, xs):
         tmp = xs + self._noise(xs.shape)
-        return (1-exp(-tmp**2/2))  * self.curvature    
+        return (1 - exp(-tmp ** 2 / 2)) * self.curvature    
                 
     def _df(self, xs):
         tmp = xs + self._noise(xs.shape)
-        return tmp * (exp(-tmp**2/2))  * self.curvature   
+        return tmp * (exp(-tmp ** 2 / 2)) * self.curvature   
         
     def _ddf(self, xs):
         tmp = xs + self._noise(xs.shape)
-        return (1- tmp**2) *exp(-tmp**2/2)  * self.curvature  
+        return (1 - tmp ** 2) * exp(-tmp ** 2 / 2) * self.curvature  
 
     def expectedLoss(self, xs):
-        a = 1./sqrt(self.noiseLevel**2+1)
-        return(1-exp(-xs**2/2*(a**2))*a)  * self.curvature    
+        a = 1. / sqrt(self.noiseLevel ** 2 + 1)
+        return(1 - exp(-xs ** 2 / 2 * (a ** 2)) * a) * self.curvature    
     
     def __str__(self):
         return "Gauss %.2f" % self.noiseLevel
@@ -217,24 +217,24 @@ class StochRectLinFlat(StochRectLin):
     """ Rectified linear (flat near zero) """        
     
     def _f(self, xs):
-        tmp = xs + self._noise(xs.shape)-self.kink
-        return tmp*(tmp<0)  * self.curvature +3    
+        tmp = xs + self._noise(xs.shape) - self.kink
+        return tmp * (tmp < 0) * self.curvature + 3    
             
     def _df(self, xs):
-        tmp = xs + self._noise(xs.shape)-self.kink
-        return - 1* (tmp<0)  * self.curvature
+        tmp = xs + self._noise(xs.shape) - self.kink
+        return -1 * (tmp < 0) * self.curvature
             
     def __str__(self):
         return "RectLinFlat %.2f" % self.noiseLevel
 
     
 class StochQuad(StochFun):
-    """ Absolute value, Gaussian noise on position of kink. """
+    """ Quadratic function, Gaussian noise on position of bowl. """
         
     fmax = 6
         
     def _f(self, xs):
-        return 0.5* (xs + self._noise(xs.shape))**2 * self.curvature
+        return 0.5 * (xs + self._noise(xs.shape)) ** 2 * self.curvature
                 
     def _df(self, xs):
         return (xs + self._noise(xs.shape)) * self.curvature    
@@ -246,9 +246,28 @@ class StochQuad(StochFun):
         return "Quad %.2f" % self.noiseLevel
     
     def expectedLoss(self, xs):
-        return (0.5 * xs **2 + 0.5 * self.noiseLevel **2) * self.curvature
+        return (0.5 * xs ** 2 + 0.5 * self.noiseLevel ** 2) * self.curvature
     
     def maxLogGain(self, numsamples, x0=1):
-        return max(0,2+log(numsamples)-2*log(self.noiseLevel)+2*log(abs(x0-self.optimum)))
+        return max(0, 2 + log(numsamples) - 2 * log(self.noiseLevel) + 2 * log(abs(x0 - self.optimum)))
+
     
+class StochWall(StochAbs):
+    """ Asymmetric variant of absolute value function, with the right side much steeper. """
+    
+    steep_factor = 100
+        
+    def _f(self, xs):
+        return (self._noise(xs.shape) + xs) * self._df(xs)
+            
+    def _df(self, xs):
+        return (-1 * (xs < self._noise(xs.shape)) 
+                + (xs > self._noise(xs.shape)) * self.steep_factor) * self.curvature 
+        
+    def expectedLoss(self, xs):  
+        other = StochFun.expectedLoss(self, xs)
+        return other
+        
+    def __str__(self):
+        return "Wall %.2f" % self.noiseLevel
     
