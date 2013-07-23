@@ -1,4 +1,4 @@
-from scipy import ones, randn, array, reshape, ravel, mean, median
+from scipy import ones, randn, array, reshape, ravel, mean, median, ndarray
 
 
 def lossTraces(fwrap, aclass, dim, maxsteps, storesteps=None, x0=None,
@@ -11,6 +11,8 @@ def lossTraces(fwrap, aclass, dim, maxsteps, storesteps=None, x0=None,
     # initial points, potentially noisy
     if x0 is None:
         x0 = ones(dim) + randn(dim) * initNoise
+    elif not isinstance(x0, ndarray):
+        x0 = ones(dim) * x0
     
     # tracking progress by callback
     paramtraces = {'index':-1}

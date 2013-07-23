@@ -23,10 +23,10 @@ algo_colors = {SGD: 'b',
                }
 
 
-def plotWithPercentiles(ltraces, color, name=None, plotall=False):
+def plotWithPercentiles(ltraces, color, name=None, whichp=25, plotall=False):
     m = median(ltraces, axis=1)
-    lp = percentile(ltraces, 25, axis=1)
-    up = percentile(ltraces, 75, axis=1)
+    lp = percentile(ltraces, whichp, axis=1)
+    up = percentile(ltraces, 100-whichp, axis=1)
     if plotall:
         for l in ltraces.T:
             pylab.plot(l, color + '-', alpha=0.3)

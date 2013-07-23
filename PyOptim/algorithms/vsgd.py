@@ -1,4 +1,4 @@
-from scipy import mean, ones_like, clip, logical_or, median
+from scipy import mean, ones_like, clip, logical_or, median, zeros_like
 from sgd import SGD
 from core.gradientalgos import BbpropHessians, FiniteDifferenceHessians
 
@@ -20,23 +20,31 @@ class vSGD(SGD, BbpropHessians):
         if self.slow_constant is None:
             self.slow_constant = max(1, int(self.paramdim / 10.))
         
-        # get a few initial samples to work with
-        tmp = self.batch_size
-        self.batch_size = self.init_samples * tmp
-        self._collectGradients()
-        self._num_updates += self.init_samples
-        self.batch_size = tmp
+        if self.init_samples > 0:
+            # get a few initial samples to work with
+            tmp = self.batch_size
+            self.batch_size = self.init_samples * tmp
+            self._collectGradients()
+            self._num_updates += self.init_samples
+            self.batch_size = tmp
         
-        # mean gradient vector
-        self._gbar = mean(self._last_gradients, axis=0)
-        # mean squared gradient
-        self._vbar = (mean(self._last_gradients ** 2, axis=0) + self.epsilon) * self.slow_constant
+            # mean gradient vector
+            self._gbar = mean(self._last_gradients, axis=0)
+            # mean squared gradient
+            self._vbar = (mean(self._last_gradients ** 2, axis=0) + self.epsilon) * self.slow_constant
+        
+            # mean diagonal Hessian
+            #hs = clip(mean(self._last_diaghessians, axis=0), 1, 1 / self.epsilon)
+            #self._hbar = hs * self.slow_constant
+            self._hbar = mean(self._last_diaghessians, axis=0)
+            
+        else:
+            # just start small, in the hope that the statistics will become accurate quickly enough
+            self._gbar = zeros_like(self.parameters)
+            self._vbar = ones_like(self.parameters) * self.epsilon
+            self._hbar = ones_like(self.parameters) 
+            
         self._vpart = self._gbar ** 2 / self._vbar
-        
-        # mean diagonal Hessian
-        #hs = clip(mean(self._last_diaghessians, axis=0), 1, 1 / self.epsilon)
-        #self._hbar = hs * self.slow_constant
-        self._hbar = mean(self._last_diaghessians, axis=0)
         
         # time constants
         self._taus = (ones_like(self.parameters) + self.epsilon) * 2#* self.init_samples
@@ -120,7 +128,11 @@ class vSGDfd(FiniteDifferenceHessians, vSGD):
         vSGD._additionalInit(self)
         #h2s = clip(mean(self._last_diaghessians ** 2, axis=0), 1, 1 / self.epsilon)
         #self._vhbar = h2s * self.slow_constant #** 2     
-        self._vhbar = mean(self._last_diaghessians ** 2, axis=0)             
+        if self.init_samples > 0:
+            self._vhbar = mean(self._last_diaghessians ** 2, axis=0)
+        else:
+            self._hbar = zeros_like(self.parameters)
+            self._vhbar = ones_like(self.parameters) * self.epsilon 
         self._hpart = (self._hbar+self.epsilon) / (self._vhbar + self.epsilon)
         self._print_quantities.extend([('vh', self._vhbar),
                                        ('hpa', self._hpart),
