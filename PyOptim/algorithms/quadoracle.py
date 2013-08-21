@@ -2,20 +2,26 @@ from sgd import SGD
 from benchmarks.stoch_1d import StochQuad
 from averaging import AveragingSGD
 from scipy import clip
+from benchmarks.nonstationary import OptimumJumper
 
 class OracleSGD(SGD):
     """ An algorithm that cheats, because it
     always knows the optimum learning rate (assuming a quadratic loss function) """
     
     def _additionalInit(self):
-        if not isinstance(self.provider.stochfun, StochQuad):
+        if isinstance(self.provider.stochfun, StochQuad):
+            self._noiseLevel = self.provider.stochfun.noiseLevel
+            self._curvature = self.provider.stochfun.curvature
+        elif isinstance(self.provider.stochfun, OptimumJumper):  
+            self.provider.stochfun.registerOracle(self)
+        else:           
             print 'WARNING: oracle inapplicable'
-        self._noiseLevel = self.provider.stochfun.noiseLevel
-        self._curvature = self.provider.stochfun.curvature
+        self._optimum = self.provider.stochfun.optimum
     
+        
     @property
     def learning_rate(self):
-        return self.parameters ** 2 / (self.parameters ** 2 + self._noiseLevel ** 2 
+        return (self.parameters-self._optimum) ** 2 / ((self.parameters-self._optimum) ** 2 + self._noiseLevel ** 2 
                                        / self.batch_size) / self._curvature          
 
 
@@ -47,9 +53,9 @@ class AveragingOracle(OracleSGD, AveragingSGD):
         return self._calcOptimalRate(self._decayProportion)
         
     def _calcOptimalRate(self, decay):
-        return (self.parameters **2 
-                - (1-decay) * self.parameters *(self.parameters - self._avg_params))\
-                / (self.parameters **2 +  self._noiseLevel **2) / decay / self._curvature
+        return ((self.parameters-self._optimum) **2 
+                - (1-decay) * (self.parameters-self._optimum) *(self.parameters - self._avg_params))\
+                / ((self.parameters-self._optimum) **2 +  self._noiseLevel **2) / decay / self._curvature
 
 
 

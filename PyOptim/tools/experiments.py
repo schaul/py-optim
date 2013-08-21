@@ -13,13 +13,18 @@ def lossTraces(fwrap, aclass, dim, maxsteps, storesteps=None, x0=None,
         x0 = ones(dim) + randn(dim) * initNoise
     elif not isinstance(x0, ndarray):
         x0 = ones(dim) * x0
+
+    # optimal loss
+    oloss = mean(fwrap.stochfun.expectedLoss(ones(100) * fwrap.stochfun.optimum))
     
     # tracking progress by callback
     paramtraces = {'index':-1}
+    losstraces = {}
     def storer(a):
         lastseen = paramtraces['index']
         for ts in [x for x in storesteps if x > lastseen and x <= a._num_updates]:
             paramtraces[ts] = a.bestParameters.copy()
+            losstraces[ts] = abs(fwrap.stochfun.expectedLoss(paramtraces[ts]) - oloss) + minLoss
         paramtraces['index'] = a._num_updates
         
     # initialization    
@@ -32,9 +37,6 @@ def lossTraces(fwrap, aclass, dim, maxsteps, storesteps=None, x0=None,
 
     # process learning curve
     del paramtraces['index']
-    paramtraces = array([x for _, x in sorted(paramtraces.items())])
-    oloss = mean(fwrap.stochfun.expectedLoss(ones(100) * fwrap.stochfun.optimum))
-    ls = abs(fwrap.stochfun.expectedLoss(ravel(paramtraces)) - oloss) + minLoss
-    ls = reshape(ls, paramtraces.shape)
+    ls = array([x for _, x in sorted(losstraces.items())])
     print median(ls[-1])
     return ls

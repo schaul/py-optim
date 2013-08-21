@@ -4,6 +4,7 @@ from benchmarks.stoch_1d import StochQuad, StochAbs
 from algorithms import SGD, AdaGrad, Amari, OracleSGD, RMSProp, vSGDfd, vSGD, AveragingSGD, AveragingOracle,AdaptivelyAveragingOracle
 from tools.plotting import plotWithPercentiles, algo_colors, plotHeatmap
 import pylab
+from benchmarks.nonstationary import OptimumJumper
 
 def testPlot1(trials=20):
     f = FunctionWrapper(trials, StochQuad(noiseLevel=0.2))
@@ -14,8 +15,8 @@ def testPlot1(trials=20):
     pylab.show()
 
 
-def testPlot2(trials=43, maxsteps=10000):
-    f = FunctionWrapper(trials, StochQuad(noiseLevel=10, curvature=10))
+def testPlot2(trials=33, maxsteps=1000):
+    f = FunctionWrapper(trials, OptimumJumper(StochQuad(noiseLevel=10, curvature=10), jumptime=250))
     for aclass, aparams in [#(SGD, {'learning_rate':0.1}),
                             #(SGD, {'learning_rate':0.01}),
                             #(AveragingSGD, {'learning_rate':0.01}),
@@ -24,7 +25,7 @@ def testPlot2(trials=43, maxsteps=10000):
                             #(AveragingSGD, {'learning_rate':0.1}),
                             #(AveragingSGD, {'learning_rate':1.0}),
                             (AveragingOracle, {}),
-                            (AveragingOracle, {"fixedDecay":0.1}),
+                            #(AveragingOracle, {"fixedDecay":0.1}),
                             (AveragingOracle, {"fixedDecay":0.01}),
                             (AdaptivelyAveragingOracle, {}),
                             #(AdaGrad, {'init_lr':0.3}),
