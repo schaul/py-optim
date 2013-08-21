@@ -50,7 +50,7 @@ class AveragingOracle(OracleSGD, AveragingSGD):
         
     @property
     def learning_rate(self):        
-        return self._calcOptimalRate(self._decayProportion)
+        return clip(self._calcOptimalRate(self._decayProportion), 0, 1./self._curvature)
         
     def _calcOptimalRate(self, decay):
         return ((self.parameters-self._optimum) **2 
@@ -68,7 +68,7 @@ class AdaptivelyAveragingOracle(AveragingOracle):
             
     @property    
     def _decayProportion(self):
-        lr = self._calcOptimalRate(1./self._tau)
+        lr = clip(self._calcOptimalRate(1./self._tau), 0, 1./self._curvature)
         self._tau *= (1-lr)
         self._tau += 1
         return 1./self._tau
