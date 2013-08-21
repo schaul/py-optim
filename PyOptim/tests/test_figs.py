@@ -14,8 +14,8 @@ def testPlot1(trials=20):
     pylab.show()
 
 
-def testPlot2(trials=23, maxsteps=10000):
-    f = FunctionWrapper(trials, StochQuad(noiseLevel=55, curvature=1))
+def testPlot2(trials=43, maxsteps=10000):
+    f = FunctionWrapper(trials, StochQuad(noiseLevel=10, curvature=10))
     for aclass, aparams in [#(SGD, {'learning_rate':0.1}),
                             #(SGD, {'learning_rate':0.01}),
                             #(AveragingSGD, {'learning_rate':0.01}),
@@ -24,6 +24,8 @@ def testPlot2(trials=23, maxsteps=10000):
                             #(AveragingSGD, {'learning_rate':0.1}),
                             #(AveragingSGD, {'learning_rate':1.0}),
                             (AveragingOracle, {}),
+                            (AveragingOracle, {"fixedDecay":0.1}),
+                            (AveragingOracle, {"fixedDecay":0.01}),
                             (AdaptivelyAveragingOracle, {}),
                             #(AdaGrad, {'init_lr':0.3}),
                             #(Amari, {'init_lr':0.1, 'time_const':100}),
